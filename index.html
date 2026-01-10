@@ -5,133 +5,156 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Sewa PS3 IRVAN</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600;700&display=swap');
         body { font-family: 'Poppins', sans-serif; background-color: #0f172a; color: #f8fafc; }
-        .glass-card { background: rgba(30, 41, 59, 0.7); backdrop-filter: blur(10px); border: 1px solid rgba(255,255,255,0.1); }
-        .timer-glow { text-shadow: 0 0 20px rgba(34, 197, 94, 0.5); }
-        .btn-primary { transition: all 0.3s ease; background: linear-gradient(135deg, #22c55e, #16a34a); }
-        .btn-primary:hover { transform: translateY(-2px); box-shadow: 0 4px 15px rgba(34, 197, 94, 0.4); }
-        .hidden { display: none; }
+        .glass-card { background: rgba(30, 41, 59, 0.7); backdrop-filter: blur(10px); border: 1px solid rgba(255,255,255,0.1); border-radius: 1rem; }
+        .timer-urgent { color: #ef4444; animation: pulse 1s infinite; }
+        @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.5; } }
+        .hidden-section { display: none; }
+        input[type="radio"]:checked + label { border-color: #3b82f6; background-color: rgba(59, 130, 246, 0.1); }
     </style>
 </head>
-<body>
+<body class="min-h-screen pb-10">
 
-    <!-- NAV BAR -->
-    <nav class="p-4 glass-card sticky top-0 z-50 flex justify-between items-center mb-6">
-        <h1 class="text-xl font-bold tracking-tighter text-green-500">PS3 IRVAN</h1>
-        <div class="flex gap-4 text-sm font-medium">
-            <button onclick="showPage('user')" class="hover:text-green-400">Sewa</button>
-            <button onclick="showPage('admin-login')" class="hover:text-green-400">Admin</button>
+    <!-- NAVIGATION / HEADER -->
+    <nav class="p-4 flex justify-between items-center glass-card m-4">
+        <div id="app-logo" class="flex items-center gap-2 cursor-pointer select-none">
+            <div class="bg-blue-600 p-2 rounded-lg">
+                <i class="fas fa-gamepad text-xl"></i>
+            </div>
+            <h1 class="font-bold text-lg tracking-wider">SEWA PS3 <span class="text-blue-500">IRVAN</span></h1>
+        </div>
+        <div id="status-indicator" class="text-xs flex items-center gap-1">
+            <span class="w-2 h-2 rounded-full bg-green-500"></span> Online
         </div>
     </nav>
 
-    <div class="container mx-auto px-4 pb-20 max-w-2xl">
+    <!-- MAIN CONTAINER -->
+    <main class="max-w-md mx-auto px-4">
         
-        <!-- PAGE: USER FORM (INDEX) -->
-        <section id="page-user" class="animate-fadeIn">
-            <div class="glass-card p-6 rounded-2xl shadow-xl">
-                <h2 class="text-2xl font-bold mb-6 flex items-center gap-2">
-                    <i class="fas fa-gamepad text-green-500"></i> Form Penyewaan
-                </h2>
-                
-                <div class="space-y-4">
+        <!-- PAGE: HOME / FORM SEWA -->
+        <section id="page-home">
+            <div class="glass-card p-6 mb-6">
+                <h2 class="text-xl font-semibold mb-4 text-center text-blue-400">Formulir Penyewaan</h2>
+                <form id="rent-form" class="space-y-4">
                     <div>
-                        <label class="block text-sm mb-1 opacity-70">Nama Penyewa</label>
-                        <input type="text" id="cust-name" class="w-full bg-slate-800 border border-slate-700 rounded-lg p-3 focus:ring-2 focus:ring-green-500 outline-none" placeholder="Masukkan nama Anda">
+                        <label class="block text-sm mb-1">Nama Penyewa</label>
+                        <input type="text" id="rent-name" required placeholder="Contoh: Budi" class="w-full p-3 rounded-lg bg-slate-800 border border-slate-700 focus:outline-none focus:border-blue-500">
+                    </div>
+                    <div>
+                        <label class="block text-sm mb-1">WhatsApp (62xxx)</label>
+                        <input type="number" id="rent-wa" required placeholder="62812345678" class="w-full p-3 rounded-lg bg-slate-800 border border-slate-700 focus:outline-none focus:border-blue-500">
+                    </div>
+                    <div>
+                        <label class="block text-sm mb-1">Pilihan Paket</label>
+                        <select id="rent-package" class="w-full p-3 rounded-lg bg-slate-800 border border-slate-700 focus:outline-none focus:border-blue-500"></select>
+                    </div>
+                    <div id="proyektor-option" class="flex items-center gap-2 p-3 bg-slate-800/50 rounded-lg">
+                        <input type="checkbox" id="rent-projector" class="w-5 h-5 rounded border-gray-300">
+                        <label for="rent-projector" class="text-sm cursor-pointer">Tambah Proyektor (+Rp <span id="price-proj">15.000</span>)</label>
+                    </div>
+
+                    <div class="space-y-2">
+                        <label class="block text-sm mb-1">Metode Pembayaran</label>
+                        <div class="grid grid-cols-2 gap-2">
+                            <input type="radio" id="pay-cash" name="pay-method" value="Cash" class="hidden" checked>
+                            <label for="pay-cash" class="block p-3 text-center rounded-lg border border-slate-700 bg-slate-800 cursor-pointer text-sm">Cash</label>
+                            
+                            <input type="radio" id="pay-transfer" name="pay-method" value="Transfer BRI" class="hidden">
+                            <label for="pay-transfer" class="block p-3 text-center rounded-lg border border-slate-700 bg-slate-800 cursor-pointer text-sm">Transfer BRI</label>
+                        </div>
                     </div>
                     
-                    <div>
-                        <label class="block text-sm mb-1 opacity-70">No. WhatsApp (Aktif)</label>
-                        <input type="number" id="cust-wa" class="w-full bg-slate-800 border border-slate-700 rounded-lg p-3 focus:ring-2 focus:ring-green-500 outline-none" placeholder="628123456xxxx">
+                    <div id="payment-details" class="p-4 bg-blue-900/30 rounded-lg border border-blue-500/30">
+                        <div class="flex justify-between items-center mb-1">
+                            <span class="text-xs text-blue-300">Total Pembayaran:</span>
+                            <span id="promo-label" class="text-[10px] text-green-400 font-bold"></span>
+                        </div>
+                        <p id="total-display" class="text-2xl font-bold">Rp 0</p>
                     </div>
 
-                    <div>
-                        <label class="block text-sm mb-1 opacity-70">Pilih Paket Sewa</label>
-                        <select id="cust-package" onchange="calculateTotal()" class="w-full bg-slate-800 border border-slate-700 rounded-lg p-3 focus:ring-2 focus:ring-green-500 outline-none">
-                            <option value="6">6 Jam - Rp 30.000</option>
-                            <option value="12">12 Jam - Rp 50.000</option>
-                            <option value="24">24 Jam - Rp 80.000</option>
-                        </select>
-                    </div>
-
-                    <div class="flex items-center gap-3 p-3 bg-slate-800/50 rounded-lg">
-                        <input type="checkbox" id="cust-proyektor" onchange="calculateTotal()" class="w-5 h-5 accent-green-500">
-                        <label for="cust-proyektor" class="text-sm">Tambah Proyektor (+ Rp 15.000)</label>
-                    </div>
-
-                    <div class="p-4 bg-slate-900 rounded-xl border border-dashed border-slate-700">
-                        <label class="block text-sm mb-2 font-bold text-green-400">Metode Pembayaran</label>
-                        <div class="space-y-2 text-sm">
-                            <div class="flex items-center gap-2">
-                                <input type="radio" name="pay" value="Cash" checked> <span>Cash (Bayar di Tempat)</span>
+                    <div id="bank-info" class="hidden-section space-y-2">
+                        <p class="text-xs font-semibold text-slate-400 uppercase tracking-wider">Rekening Transfer:</p>
+                        <div class="p-3 bg-slate-800 rounded-lg border border-slate-700 flex justify-between items-center">
+                            <div>
+                                <p class="text-xs font-bold text-blue-400">BRI (Copy Nomor)</p>
+                                <p id="acc-number" class="text-sm font-mono tracking-widest">611901029752532</p>
+                                <p class="text-[10px] text-slate-400 uppercase">a.n IRVAN MAULANA</p>
                             </div>
-                            <div class="flex items-center gap-2">
-                                <input type="radio" name="pay" value="Transfer BRI"> <span>Transfer BRI</span>
-                            </div>
-                            <div class="ml-6 text-xs opacity-60">
-                                611901029752532 a.n IRVAN MAULANA
-                            </div>
+                            <button type="button" onclick="copyAccNumber()" class="bg-blue-600 hover:bg-blue-500 p-2 px-3 rounded text-xs">
+                                <i class="fas fa-copy"></i>
+                            </button>
                         </div>
                     </div>
 
-                    <div class="flex items-start gap-2 text-xs opacity-70 mt-4">
-                        <input type="checkbox" id="rules-check" class="mt-1 accent-green-500">
-                        <label for="rules-check">Saya setuju dengan syarat & aturan penyewaan PS3 IRVAN.</label>
+                    <div class="flex items-start gap-2 pt-2">
+                        <input type="checkbox" id="terms" required class="mt-1">
+                        <label for="terms" class="text-[10px] text-slate-400 italic">Saya setuju dengan syarat & aturan sewa.</label>
                     </div>
 
-                    <div class="mt-6 pt-4 border-t border-slate-700">
-                        <div class="flex justify-between items-center mb-4">
-                            <span class="text-lg">Total Bayar:</span>
-                            <span id="total-display" class="text-2xl font-bold text-green-400">Rp 30.000</span>
-                        </div>
-                        <button onclick="submitSewa()" class="w-full btn-primary p-4 rounded-xl font-bold text-white uppercase tracking-wider">
-                            Konfirmasi Sewa & Hubungi Admin
-                        </button>
-                    </div>
+                    <button type="submit" class="w-full bg-green-600 hover:bg-green-700 text-white font-bold py-4 rounded-xl transition-all shadow-lg">
+                        <i class="fab fa-whatsapp mr-2"></i> KONFIRMASI SEWA
+                    </button>
+                </form>
+            </div>
+        </section>
+
+        <!-- PAGE: TIMER VIEW (Public) -->
+        <section id="page-timer" class="hidden-section text-center py-10">
+            <div class="glass-card p-8">
+                <h3 id="timer-user-name" class="text-xl font-bold mb-2">-</h3>
+                <p class="text-slate-400 text-sm mb-6">Sisa Waktu Bermain:</p>
+                <div id="timer-display" class="text-6xl font-black mb-6 tracking-tighter">00:00:00</div>
+                <div id="timer-note" class="bg-slate-800 p-3 rounded italic text-sm text-slate-300 mb-4">
+                    Menunggu Admin memulai timer...
                 </div>
+                <button onclick="location.reload()" class="text-xs text-blue-400 underline">Refresh Halaman</button>
             </div>
         </section>
 
         <!-- PAGE: ADMIN LOGIN -->
-        <section id="page-admin-login" class="hidden animate-fadeIn">
-            <div class="glass-card p-8 rounded-2xl max-w-sm mx-auto text-center">
-                <i class="fas fa-lock text-4xl text-green-500 mb-4"></i>
-                <h2 class="text-xl font-bold mb-4">Akses Admin</h2>
-                <input type="password" id="admin-pin" class="w-full bg-slate-800 border border-slate-700 rounded-lg p-3 text-center text-2xl tracking-widest mb-4" placeholder="••••">
-                <button onclick="checkAdminPin()" class="w-full btn-primary p-3 rounded-lg font-bold">MASUK</button>
+        <section id="page-admin-login" class="hidden-section">
+            <div class="glass-card p-6 text-center">
+                <h2 class="text-xl font-bold mb-4">Login Admin</h2>
+                <input type="password" id="admin-pin" placeholder="PIN" class="w-full p-3 mb-4 rounded bg-slate-800 text-center text-2xl tracking-widest border border-slate-700">
+                <button onclick="checkAdminPin()" class="w-full bg-blue-600 py-3 rounded-lg font-bold">Masuk</button>
+                <button onclick="showPage('page-home')" class="mt-4 text-xs text-slate-500">Batal</button>
             </div>
         </section>
 
         <!-- PAGE: ADMIN DASHBOARD -->
-        <section id="page-admin-dashboard" class="hidden animate-fadeIn space-y-4">
-            <div class="flex justify-between items-center mb-2">
-                <h2 class="text-2xl font-bold">Daftar Penyewa</h2>
-                <button onclick="logoutAdmin()" class="text-xs bg-red-500/20 text-red-400 px-3 py-1 rounded">Logout</button>
+        <section id="page-admin-dashboard" class="hidden-section">
+            <div class="flex justify-between items-center mb-4">
+                <div class="flex flex-col">
+                    <h2 class="text-xl font-bold">Admin Panel</h2>
+                    <button onclick="logoutAdmin()" class="text-[10px] text-red-400 text-left font-bold uppercase"><i class="fas fa-sign-out-alt"></i> Keluar Admin</button>
+                </div>
+                <button onclick="showSettings()" class="bg-slate-700 p-2 rounded-lg text-xs"><i class="fas fa-cog"></i></button>
             </div>
-            <div id="admin-list" class="space-y-4">
-                <!-- List data dari Firebase akan muncul di sini -->
-                <div class="text-center py-10 opacity-50">Mengambil data...</div>
-            </div>
+            <div id="admin-rentals-list" class="space-y-4"></div>
         </section>
 
-        <!-- PAGE: TIMER VIEW (PUBLIC) -->
-        <section id="page-timer" class="hidden animate-fadeIn text-center">
-            <div id="timer-content">
-                <!-- Konten timer dinamis -->
+        <!-- PAGE: ADMIN SETTINGS -->
+        <section id="page-admin-settings" class="hidden-section">
+            <div class="glass-card p-6">
+                <div class="flex items-center gap-2 mb-4">
+                    <button onclick="showPage('page-admin-dashboard')" class="text-blue-400"><i class="fas fa-arrow-left"></i></button>
+                    <h2 class="text-lg font-bold">Pengaturan</h2>
+                </div>
+                <!-- Settings inputs same as before -->
+                <div class="space-y-4" id="settings-inputs-area">
+                    <!-- ... settings content ... -->
+                </div>
             </div>
         </section>
+    </main>
 
-    </div>
-
-    <!-- Firebase SDK -->
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-app.js";
-        import { getFirestore, collection, addDoc, onSnapshot, doc, updateDoc, deleteDoc, query, orderBy, serverTimestamp, getDoc } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-firestore.js";
-        import { getAuth, signInAnonymously, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-auth.js";
+        import { getFirestore, doc, setDoc, getDoc, collection, onSnapshot, updateDoc, deleteDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-firestore.js";
 
-        // CONFIGURASI FIREBASE
         const firebaseConfig = {
             apiKey: "AIzaSyAh0-rM-TD72TMcGg1XRRfOlLLGQOrYGwQ",
             authDomain: "sewaps3.firebaseapp.com",
@@ -144,283 +167,243 @@
 
         const app = initializeApp(firebaseConfig);
         const db = getFirestore(app);
-        const auth = getAuth(app);
-        const appId = "sewa-ps3-irvan-001"; // ID unik untuk namespace firestore
-
-        // AUTHENTICATION
-        signInAnonymously(auth).catch(e => console.error("Auth Error", e));
-
-        // GLOBAL STATE
-        window.activePage = 'user';
-        window.isAdmin = false;
+        const appId = "sewaps3_irvan";
         const ADMIN_PIN = "4321";
+        const ADMIN_WA = "+6287745756269";
 
-        // UTILS: Navigasi
+        let currentSettings = { price6: 30000, price12: 50000, price24: 80000, priceProj: 15000, projReady: true, promoText: "" };
+        let logoClickCount = 0;
+        let activeTimers = {};
+
+        window.onload = () => { initApp(); checkUrlForTimer(); };
+
+        async function initApp() {
+            onSnapshot(doc(db, "artifacts", appId, "public", "settings"), (snap) => {
+                if (snap.exists()) {
+                    currentSettings = snap.data();
+                    updateUIWithSettings();
+                } else { updateSettings(); }
+            });
+            onSnapshot(collection(db, "artifacts", appId, "public", "data", "rentals"), (snap) => {
+                const list = document.getElementById('admin-rentals-list');
+                list.innerHTML = "";
+                snap.forEach(docSnap => renderRentalItem(docSnap.id, docSnap.data()));
+            });
+            setInterval(updateAllTimers, 1000);
+        }
+
         window.showPage = (pageId) => {
-            document.querySelectorAll('section').forEach(s => s.classList.add('hidden'));
-            document.getElementById(`page-${pageId}`).classList.remove('hidden');
-            window.activePage = pageId;
-
-            // Jika ke halaman timer publik, cek URL params
-            const params = new URLSearchParams(window.location.search);
-            const timerId = params.get('id');
-            if (pageId === 'timer' && timerId) {
-                loadTimerView(timerId);
-            }
+            const sections = ['page-home', 'page-timer', 'page-admin-login', 'page-admin-dashboard', 'page-admin-settings'];
+            sections.forEach(s => document.getElementById(s).classList.add('hidden-section'));
+            document.getElementById(pageId).classList.remove('hidden-section');
         };
 
-        // USER: Hitung Total
-        window.calculateTotal = () => {
-            const pkg = parseInt(document.getElementById('cust-package').value);
-            const proyektor = document.getElementById('cust-proyektor').checked;
-            let total = 0;
-            if (pkg === 6) total = 30000;
-            else if (pkg === 12) total = 50000;
-            else if (pkg === 24) total = 80000;
-
-            if (proyektor) total += 15000;
-            document.getElementById('total-display').innerText = `Rp ${total.toLocaleString('id-ID')}`;
-            return total;
-        };
-
-        // USER: Submit Sewa
-        window.submitSewa = async () => {
-            const name = document.getElementById('cust-name').value;
-            const wa = document.getElementById('cust-wa').value;
-            const pkg = document.getElementById('cust-package').value;
-            const proyektor = document.getElementById('cust-proyektor').checked;
-            const payment = document.querySelector('input[name="pay"]:checked').value;
-            const rules = document.getElementById('rules-check').checked;
-
-            if (!name || !wa) return alert("Mohon lengkapi Nama dan No WhatsApp!");
-            if (!rules) return alert("Anda harus menyetujui aturan!");
-
-            const total = calculateTotal();
-            
-            try {
-                const docRef = await addDoc(collection(db, "artifacts", appId, "public", "data", "sewa"), {
-                    nama: name,
-                    wa: wa,
-                    paket: pkg,
-                    proyektor: proyektor,
-                    pembayaran: payment,
-                    total: total,
-                    status: "Belum Dibayar",
-                    createdAt: serverTimestamp(),
-                    timerStart: null,
-                    timerEnd: null,
-                    isRunning: false,
-                    note: ""
-                });
-
-                const text = `Halo Admin Irvan, saya mau sewa PS3.%0A%0ANama: ${name}%0APaket: ${pkg} Jam%0AProyektor: ${proyektor ? 'Ya' : 'Tidak'}%0ATotal: Rp ${total.toLocaleString('id-ID')}%0ABayar via: ${payment}%0A%0AMohon konfirmasi pembayarannya ya.`;
-                window.open(`https://wa.me/6287745756269?text=${text}`, '_blank');
-                
-                alert("Data berhasil dikirim! Silakan chat admin via WhatsApp.");
-                location.reload();
-
-            } catch (e) {
-                console.error(e);
-                alert("Gagal menyimpan data.");
-            }
-        };
-
-        // ADMIN: Login Logic
-        window.checkAdminPin = () => {
-            const pin = document.getElementById('admin-pin').value;
-            if (pin === ADMIN_PIN) {
-                window.isAdmin = true;
-                showPage('admin-dashboard');
-                loadAdminData();
-            } else {
-                alert("PIN Salah!");
-            }
+        // Logo click for admin login
+        document.getElementById('app-logo').onclick = () => {
+            logoClickCount++;
+            if (logoClickCount >= 5) { logoClickCount = 0; showPage('page-admin-login'); }
+            setTimeout(() => logoClickCount = 0, 3000);
         };
 
         window.logoutAdmin = () => {
-            window.isAdmin = false;
-            showPage('user');
-        };
-
-        // ADMIN: Load Data Real-time
-        const loadAdminData = () => {
-            const q = query(collection(db, "artifacts", appId, "public", "data", "sewa"), orderBy("createdAt", "desc"));
-            onSnapshot(q, (snapshot) => {
-                const listEl = document.getElementById('admin-list');
-                listEl.innerHTML = '';
-                
-                snapshot.forEach((docSnap) => {
-                    const data = docSnap.data();
-                    const id = docSnap.id;
-                    const card = document.createElement('div');
-                    card.className = "glass-card p-4 rounded-xl border-l-4 " + (data.status === 'Aktif' ? 'border-green-500' : 'border-yellow-500');
-                    
-                    const timerStatus = data.isRunning ? 
-                        `<span class="text-xs bg-green-500 text-white px-2 py-1 rounded">Running</span>` : 
-                        `<span class="text-xs bg-slate-600 text-white px-2 py-1 rounded">Stopped</span>`;
-
-                    card.innerHTML = `
-                        <div class="flex justify-between items-start mb-2">
-                            <div>
-                                <h3 class="font-bold text-lg">${data.nama}</h3>
-                                <p class="text-xs opacity-60">${data.paket} Jam • ${data.pembayaran} • ${data.proyektor ? '+ Proyektor' : 'Tanpa Proyektor'}</p>
-                            </div>
-                            <div class="text-right">
-                                <div class="font-bold text-green-400">Rp ${data.total?.toLocaleString('id-ID')}</div>
-                                <div class="text-[10px] uppercase">${data.status}</div>
-                            </div>
-                        </div>
-                        
-                        <div class="grid grid-cols-2 gap-2 mt-4">
-                            <button onclick="updateStatus('${id}', 'Aktif')" class="bg-blue-600 text-[10px] p-2 rounded font-bold uppercase">Konfirmasi Bayar</button>
-                            <button onclick="copyTimerLink('${id}')" class="bg-purple-600 text-[10px] p-2 rounded font-bold uppercase">Copy Link Timer</button>
-                        </div>
-
-                        <div class="mt-4 p-3 bg-slate-900/50 rounded-lg space-y-3">
-                            <div class="flex justify-between items-center">
-                                <span class="text-xs">Control Timer: ${timerStatus}</span>
-                                <div class="flex gap-2">
-                                    <button onclick="controlTimer('${id}', 'start', ${data.paket})" class="text-green-500 text-sm"><i class="fas fa-play"></i></button>
-                                    <button onclick="controlTimer('${id}', 'stop')" class="text-red-500 text-sm"><i class="fas fa-stop"></i></button>
-                                    <button onclick="controlTimer('${id}', 'add')" class="text-yellow-500 text-sm"><i class="fas fa-plus-circle"></i> 1j</button>
-                                </div>
-                            </div>
-                            <input type="text" value="${data.note || ''}" onchange="updateNote('${id}', this.value)" placeholder="Catatan Admin..." class="w-full bg-slate-800 border-none text-xs p-2 rounded">
-                            <button onclick="deleteData('${id}')" class="w-full text-[10px] text-red-400 opacity-50 hover:opacity-100">Hapus Data</button>
-                        </div>
-                    `;
-                    listEl.appendChild(card);
-                });
-            }, (err) => console.error("Firestore Error", err));
-        };
-
-        // ADMIN: ACTIONS
-        window.updateStatus = async (id, status) => {
-            await updateDoc(doc(db, "artifacts", appId, "public", "data", "sewa", id), { status: status });
-        };
-
-        window.updateNote = async (id, note) => {
-            await updateDoc(doc(db, "artifacts", appId, "public", "data", "sewa", id), { note: note });
-        };
-
-        window.deleteData = async (id) => {
-            if(confirm("Hapus data ini?")) {
-                await deleteDoc(doc(db, "artifacts", appId, "public", "data", "sewa", id));
+            if(confirm("Keluar dari Mode Admin?")) {
+                document.getElementById('admin-pin').value = "";
+                showPage('page-home');
             }
         };
 
-        window.copyTimerLink = (id) => {
-            const url = `${window.location.origin}${window.location.pathname}?page=timer&id=${id}`;
-            const dummy = document.createElement("input");
-            document.body.appendChild(dummy);
-            dummy.value = url;
-            dummy.select();
-            document.execCommand("copy");
-            document.body.removeChild(dummy);
-            alert("Link Timer Berhasil Disalin!");
+        window.checkAdminPin = () => {
+            if (document.getElementById('admin-pin').value === ADMIN_PIN) showPage('page-admin-dashboard');
+            else alert("PIN Salah!");
         };
 
-        window.controlTimer = async (id, action, hours = 0) => {
-            const docRef = doc(db, "artifacts", appId, "public", "data", "sewa", id);
-            const snap = await getDoc(docRef);
-            const data = snap.data();
+        // UI & Settings Logic
+        function updateUIWithSettings() {
+            const pkgSelect = document.getElementById('rent-package');
+            pkgSelect.innerHTML = `
+                <option value="6">6 Jam - Rp ${currentSettings.price6.toLocaleString()}</option>
+                <option value="12">12 Jam - Rp ${currentSettings.price12.toLocaleString()}</option>
+                <option value="24">24 Jam - Rp ${currentSettings.price24.toLocaleString()}</option>
+            `;
+            document.getElementById('price-proj').innerText = currentSettings.priceProj.toLocaleString();
+            document.getElementById('proyektor-option').style.display = currentSettings.projReady ? 'flex' : 'none';
+            document.getElementById('promo-label').innerText = currentSettings.promoText || "";
+            
+            // Re-render settings inputs (static template)
+            document.getElementById('settings-inputs-area').innerHTML = `
+                <div class="flex items-center justify-between p-3 bg-slate-800 rounded-lg">
+                    <span>Status Proyektor</span>
+                    <select id="set-proj-status" onchange="updateSettings()" class="bg-slate-700 rounded p-1">
+                        <option value="ready" ${currentSettings.projReady?'selected':''}>Tersedia</option>
+                        <option value="out" ${!currentSettings.projReady?'selected':''}>Kosong</option>
+                    </select>
+                </div>
+                <div class="grid grid-cols-2 gap-2">
+                    <input type="number" id="set-p1" value="${currentSettings.price6}" onchange="updateSettings()" class="bg-slate-800 p-3 rounded text-sm" placeholder="6 Jam">
+                    <input type="number" id="set-p2" value="${currentSettings.price12}" onchange="updateSettings()" class="bg-slate-800 p-3 rounded text-sm" placeholder="12 Jam">
+                    <input type="number" id="set-p3" value="${currentSettings.price24}" onchange="updateSettings()" class="bg-slate-800 p-3 rounded text-sm" placeholder="24 Jam">
+                    <input type="number" id="set-pproj" value="${currentSettings.priceProj}" onchange="updateSettings()" class="bg-slate-800 p-3 rounded text-sm" placeholder="Harga Proy">
+                </div>
+                <input type="text" id="set-promo" value="${currentSettings.promoText}" onchange="updateSettings()" class="w-full bg-slate-800 p-3 rounded text-sm" placeholder="Teks Promo...">
+            `;
+            recalculateTotal();
+        }
 
-            if (action === 'start') {
-                const now = Date.now();
-                const end = now + (hours * 3600 * 1000);
-                await updateDoc(docRef, { 
-                    timerStart: now, 
-                    timerEnd: end, 
-                    isRunning: true,
-                    status: 'Aktif'
-                });
-            } else if (action === 'stop') {
-                await updateDoc(docRef, { isRunning: false, timerEnd: Date.now() });
-            } else if (action === 'add') {
-                const newEnd = (data.timerEnd || Date.now()) + (1 * 3600 * 1000);
-                await updateDoc(docRef, { timerEnd: newEnd });
-            }
+        window.updateSettings = async () => {
+            const data = {
+                price6: parseInt(document.getElementById('set-p1').value),
+                price12: parseInt(document.getElementById('set-p2').value),
+                price24: parseInt(document.getElementById('set-p3').value),
+                priceProj: parseInt(document.getElementById('set-pproj').value),
+                projReady: document.getElementById('set-proj-status').value === 'ready',
+                promoText: document.getElementById('set-promo').value
+            };
+            await setDoc(doc(db, "artifacts", appId, "public", "settings"), data);
         };
 
-        // TIMER VIEW: Real-time Countdown
-        window.loadTimerView = (id) => {
-            const docRef = doc(db, "artifacts", appId, "public", "data", "sewa", id);
-            onSnapshot(docRef, (snap) => {
-                const container = document.getElementById('timer-content');
-                if (!snap.exists()) {
-                    container.innerHTML = `<div class="p-10">Data tidak ditemukan atau sudah dihapus.</div>`;
-                    return;
-                }
+        // Form Calculation
+        const rentForm = document.getElementById('rent-form');
+        const payRadios = document.getElementsByName('pay-method');
 
-                const data = snap.data();
-                container.innerHTML = `
-                    <div class="py-10">
-                        <h1 class="text-3xl font-bold text-green-500 mb-2">PS3 IRVAN</h1>
-                        <p class="opacity-70 mb-8">Penyewa: <span class="font-bold text-white">${data.nama}</span></p>
-                        
-                        <div class="glass-card py-12 rounded-3xl mb-8">
-                            <div id="countdown-display" class="text-6xl md:text-8xl font-black timer-glow font-mono">
-                                00:00:00
-                            </div>
-                            <p class="mt-4 text-sm tracking-widest uppercase opacity-50">Sisa Waktu</p>
-                        </div>
+        function recalculateTotal() {
+            let total = 0;
+            const pkg = document.getElementById('rent-package').value;
+            if(pkg === "6") total = currentSettings.price6;
+            else if(pkg === "12") total = currentSettings.price12;
+            else if(pkg === "24") total = currentSettings.price24;
+            if(document.getElementById('rent-projector').checked) total += currentSettings.priceProj;
+            document.getElementById('total-display').innerText = `Rp ${total.toLocaleString()}`;
+            
+            // Show/Hide Bank Info
+            const method = Array.from(payRadios).find(r => r.checked).value;
+            document.getElementById('bank-info').style.display = method === 'Transfer BRI' ? 'block' : 'none';
+            return total;
+        }
 
-                        ${data.note ? `<div class="p-4 bg-yellow-500/10 border border-yellow-500/30 rounded-xl mb-6">
-                            <p class="text-sm text-yellow-400 italic">" ${data.note} "</p>
-                        </div>` : ''}
+        document.getElementById('rent-package').onchange = recalculateTotal;
+        document.getElementById('rent-projector').onchange = recalculateTotal;
+        payRadios.forEach(r => r.onchange = recalculateTotal);
 
-                        <div class="text-xs opacity-40">
-                            Status: ${data.isRunning ? 'Sedang Berjalan' : 'Berhenti'} <br>
-                            Paket: ${data.paket} Jam
-                        </div>
-                    </div>
-                `;
+        rentForm.onsubmit = async (e) => {
+            e.preventDefault();
+            const name = document.getElementById('rent-name').value;
+            const wa = document.getElementById('rent-wa').value;
+            const pkg = document.getElementById('rent-package').value;
+            const method = Array.from(payRadios).find(r => r.checked).value;
+            const total = recalculateTotal();
+            const id = "RENT-" + Date.now();
 
-                // Start Interval
-                if (window.timerInterval) clearInterval(window.timerInterval);
-                
-                const updateDisplay = () => {
-                    const display = document.getElementById('countdown-display');
-                    if (!display) return;
-
-                    if (!data.isRunning) {
-                        display.innerText = "OFF";
-                        display.classList.add('text-slate-600');
-                        return;
-                    }
-
-                    const now = Date.now();
-                    const distance = data.timerEnd - now;
-
-                    if (distance < 0) {
-                        display.innerText = "HABIS";
-                        display.classList.add('text-red-500');
-                        return;
-                    }
-
-                    const h = Math.floor(distance / (1000 * 60 * 60));
-                    const m = Math.floor((distance % (1000 * 60 * 60)) / (1000 * 60));
-                    const s = Math.floor((distance % (1000 * 60)) / 1000);
-
-                    display.innerText = `${h.toString().padStart(2, '0')}:${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
-                };
-
-                updateDisplay();
-                window.timerInterval = setInterval(updateDisplay, 1000);
-
+            await setDoc(doc(db, "artifacts", appId, "public", "data", "rentals", id), {
+                name, wa, pkg, total, method, status: "Belum Dibayar", createdAt: serverTimestamp(),
+                remainingSeconds: parseInt(pkg)*3600, isRunning: false, lastUpdate: Date.now(), note: "Menunggu pembayaran via "+method
             });
+
+            const msg = `Halo Admin Irvan, saya sewa PS3.\n\nNama: ${name}\nPaket: ${pkg} Jam\nTotal: Rp ${total.toLocaleString()}\nMetode: ${method}`;
+            window.open(`https://wa.me/${ADMIN_WA}?text=${encodeURIComponent(msg)}`, '_blank');
+            alert("Berhasil! Silahkan konfirmasi ke admin via WhatsApp.");
+            rentForm.reset(); recalculateTotal();
         };
 
-        // HANDLE DEEP LINKS (URL Params)
-        window.onload = () => {
-            const params = new URLSearchParams(window.location.search);
-            if (params.get('page') === 'timer' && params.get('id')) {
-                showPage('timer');
-            } else {
-                showPage('user');
+        // Admin Dash Controls
+        function renderRentalItem(id, data) {
+            const list = document.getElementById('admin-rentals-list');
+            const card = document.createElement('div');
+            card.className = "glass-card p-4 text-sm border-l-4 " + (data.status === 'Aktif' ? 'border-green-500' : 'border-yellow-500');
+            card.innerHTML = `
+                <div class="flex justify-between mb-2">
+                    <div><h4 class="font-bold">${data.name}</h4><p class="text-[10px] text-slate-400">${data.method}</p></div>
+                    <div class="text-right"><p class="font-mono font-bold ${data.remainingSeconds<600?'timer-urgent':''}">${formatTime(data.remainingSeconds)}</p></div>
+                </div>
+                <div class="grid grid-cols-2 gap-1 mb-2">
+                    <button onclick="toggleTimer('${id}', ${data.isRunning})" class="bg-slate-700 py-1 rounded text-xs">
+                        <i class="fas ${data.isRunning?'fa-pause':'fa-play'}"></i> ${data.isRunning?'Pause':'Start'}
+                    </button>
+                    <button onclick="sendTimerLink('${id}', '${data.wa}')" class="bg-blue-600 py-1 rounded text-xs"><i class="fab fa-whatsapp"></i> Link</button>
+                </div>
+                <div class="flex gap-1">
+                    <button onclick="adjustTime('${id}', 60)" class="bg-slate-800 flex-1 py-1 rounded text-[10px]">+1m</button>
+                    <button onclick="adjustTime('${id}', -60)" class="bg-red-900/20 flex-1 py-1 rounded text-[10px]">-1m</button>
+                    <button onclick="deleteRental('${id}')" class="bg-slate-800 p-1 px-2 rounded text-red-500"><i class="fas fa-trash"></i></button>
+                </div>
+            `;
+            list.appendChild(card);
+            activeTimers[id] = data;
+        }
+
+        window.toggleTimer = async (id, run) => {
+            await updateDoc(doc(db, "artifacts", appId, "public", "data", "rentals", id), { isRunning: !run, status: "Aktif", lastUpdate: Date.now() });
+        };
+
+        window.adjustTime = async (id, secs) => {
+            const newVal = Math.max(0, activeTimers[id].remainingSeconds + secs);
+            await updateDoc(doc(db, "artifacts", appId, "public", "data", "rentals", id), { remainingSeconds: newVal, lastUpdate: Date.now() });
+        };
+
+        window.deleteRental = async (id) => { if(confirm("Hapus?")) await deleteDoc(doc(db, "artifacts", appId, "public", "data", "rentals", id)); };
+
+        window.sendTimerLink = (id, wa) => {
+            const url = window.location.href.split('?')[0] + "?t=" + id;
+            window.open(`https://wa.me/${wa}?text=${encodeURIComponent("Link sisa waktu sewa PS3 Anda: " + url)}`, '_blank');
+        };
+
+        // Timer Engine
+        function updateAllTimers() {
+            Object.keys(activeTimers).forEach(async id => {
+                const data = activeTimers[id];
+                if (data.isRunning && data.remainingSeconds > 0) {
+                    const now = Date.now();
+                    const diff = Math.floor((now - data.lastUpdate) / 1000);
+                    if (diff >= 1) {
+                        const newSecs = Math.max(0, data.remainingSeconds - diff);
+                        activeTimers[id].remainingSeconds = newSecs;
+                        activeTimers[id].lastUpdate = now;
+                        if (newSecs % 5 === 0 || newSecs === 0) {
+                            await updateDoc(doc(db, "artifacts", appId, "public", "data", "rentals", id), { remainingSeconds: newSecs, lastUpdate: now, isRunning: newSecs > 0 });
+                        }
+                    }
+                }
+            });
+            updatePublicTimerUI();
+        }
+
+        function formatTime(secs) {
+            const h = Math.floor(secs / 3600), m = Math.floor((secs % 3600) / 60), s = secs % 60;
+            return [h, m, s].map(v => v < 10 ? "0" + v : v).join(":");
+        }
+
+        function checkUrlForTimer() {
+            const timerId = new URLSearchParams(window.location.search).get('t');
+            if (timerId) {
+                showPage('page-timer');
+                onSnapshot(doc(db, "artifacts", appId, "public", "data", "rentals", timerId), (snap) => {
+                    if (snap.exists()) {
+                        const d = snap.data();
+                        document.getElementById('timer-user-name').innerText = d.name;
+                        document.getElementById('timer-note').innerText = d.note;
+                        activeTimers[timerId] = d;
+                    }
+                });
             }
+        }
+
+        function updatePublicTimerUI() {
+            const tId = new URLSearchParams(window.location.search).get('t');
+            if (tId && activeTimers[tId]) {
+                const d = activeTimers[tId];
+                const el = document.getElementById('timer-display');
+                el.innerText = formatTime(d.remainingSeconds);
+                if(d.remainingSeconds < 600) el.classList.add('timer-urgent');
+                else el.classList.remove('timer-urgent');
+                if(d.remainingSeconds <= 0) el.innerText = "HABIS";
+            }
+        }
+
+        window.copyAccNumber = () => {
+            const num = document.getElementById('acc-number').innerText;
+            navigator.clipboard.writeText(num).then(() => alert("Nomor rekening disalin!"));
         };
 
+        window.showSettings = () => showPage('page-admin-settings');
     </script>
 </body>
 </html>
