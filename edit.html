@@ -256,8 +256,10 @@
                 list.innerHTML = "";
                 snap.forEach(docSnap => {
                     const data = docSnap.data();
-                    // Merge remote data with local state to preserve 'hasWarned' flag if needed
-                    activeTimers[docSnap.id] = { ...data, ...activeTimers[docSnap.id] }; 
+                    // FIXED: Safer merge logic to prevent undefined error
+                    const previousData = activeTimers[docSnap.id] || {};
+                    activeTimers[docSnap.id] = { ...data, hasAutoWarned: previousData.hasAutoWarned }; 
+                    
                     renderRentalItem(docSnap.id, activeTimers[docSnap.id]);
                 });
                 
@@ -462,16 +464,28 @@
         }
 
         window.toggleTimer = async (id, run) => {
-            const data = activeTimers[id];
-            await updateDoc(doc(db, "artifacts", appId, "public", "data", "rentals", id), { 
-                isRunning: !run, 
-                status: "Aktif", 
-                lastUpdate: Date.now() 
-            });
+            // FIXED: Added check if activeTimers[id] exists to prevent crash
+            if (!activeTimers[id]) {
+                console.error("Timer data not found locally, waiting for sync.");
+                return;
+            }
+            try {
+                await updateDoc(doc(db, "artifacts", appId, "public", "data", "rentals", id), { 
+                    isRunning: !run, 
+                    status: "Aktif", 
+                    lastUpdate: Date.now() 
+                });
+            } catch (error) {
+                console.error("Error updating timer:", error);
+                alert("Gagal mengupdate status timer. Periksa koneksi internet.");
+            }
         };
 
         window.adjustTime = async (id, secs) => {
-            const currentSec = activeTimers[id].remainingSeconds;
+            // FIXED: Added check if activeTimers[id] exists to prevent crash
+            if (!activeTimers[id]) return;
+
+            const currentSec = activeTimers[id].remainingSeconds || 0;
             const newVal = Math.max(0, currentSec + secs);
             
             // If admin adds time above 10 mins (600s), alarm resets
@@ -487,7 +501,11 @@
                  // The logic below handles the >600 check naturally.
             }
 
-            await updateDoc(doc(db, "artifacts", appId, "public", "data", "rentals", id), updates);
+            try {
+                await updateDoc(doc(db, "artifacts", appId, "public", "data", "rentals", id), updates);
+            } catch (error) {
+                console.error("Error adjusting time:", error);
+            }
         };
 
         window.updateNote = async (id, val) => {
