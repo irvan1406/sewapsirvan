@@ -198,7 +198,6 @@
         let logoClickCount = 0;
         let activeTimers = {};
         let syncInterval = null;
-        let alarmInterval = null;
         let audioContext = null;
 
         // ALARM SYSTEM
@@ -223,16 +222,14 @@
             gain.connect(audioContext.destination);
 
             if (type === 'warning') {
-                // High pitch short beep for 10 min warning
                 osc.type = 'square';
-                osc.frequency.setValueAtTime(880, audioContext.currentTime); // A5
+                osc.frequency.setValueAtTime(880, audioContext.currentTime); 
                 gain.gain.setValueAtTime(0.1, audioContext.currentTime);
                 osc.start();
                 osc.stop(audioContext.currentTime + 0.1);
             } else if (type === 'end') {
-                // Long lower pitch for end
                 osc.type = 'sawtooth';
-                osc.frequency.setValueAtTime(440, audioContext.currentTime); // A4
+                osc.frequency.setValueAtTime(440, audioContext.currentTime); 
                 gain.gain.setValueAtTime(0.2, audioContext.currentTime);
                 osc.start();
                 osc.stop(audioContext.currentTime + 1.0);
@@ -242,7 +239,6 @@
         window.onload = () => { initApp(); checkUrlForTimer(); };
 
         async function initApp() {
-            // Settings Sync
             onSnapshot(doc(db, "artifacts", appId, "public", "settings"), (snap) => {
                 if (snap.exists()) {
                     currentSettings = snap.data();
@@ -253,19 +249,36 @@
             // Rentals Sync (Real-time for Admin)
             onSnapshot(collection(db, "artifacts", appId, "public", "data", "rentals"), (snap) => {
                 const list = document.getElementById('admin-rentals-list');
-                list.innerHTML = "";
+                
+                // Track IDs in current snap
+                const currentIds = [];
                 snap.forEach(docSnap => {
                     const data = docSnap.data();
-                    // FIXED: Safer merge logic to prevent undefined error
-                    const previousData = activeTimers[docSnap.id] || {};
-                    activeTimers[docSnap.id] = { ...data, hasAutoWarned: previousData.hasAutoWarned }; 
+                    const id = docSnap.id;
+                    currentIds.push(id);
                     
-                    renderRentalItem(docSnap.id, activeTimers[docSnap.id]);
+                    const previousData = activeTimers[id] || {};
+                    activeTimers[id] = { ...data, hasAutoWarned: previousData.hasAutoWarned || false }; 
+                    
+                    // RENDER ONLY IF NOT EXISTS, otherwise update specific elements to avoid focus loss
+                    renderRentalItem(id, activeTimers[id]);
                 });
                 
-                // If list empty
+                // Cleanup removed rentals from UI
+                const allCards = list.querySelectorAll('[id^="card-"]');
+                allCards.forEach(card => {
+                    const cardId = card.id.replace('card-', '');
+                    if (!currentIds.includes(cardId)) {
+                        card.remove();
+                        delete activeTimers[cardId];
+                    }
+                });
+
                 if(snap.empty) {
-                    list.innerHTML = `<div class="text-center py-10 text-slate-500 italic text-sm">Belum ada penyewa hari ini...</div>`;
+                    list.innerHTML = `<div id="empty-msg" class="text-center py-10 text-slate-500 italic text-sm">Belum ada penyewa hari ini...</div>`;
+                } else {
+                    const emptyMsg = document.getElementById('empty-msg');
+                    if(emptyMsg) emptyMsg.remove();
                 }
             });
 
@@ -308,37 +321,40 @@
             document.getElementById('proyektor-option').style.display = currentSettings.projReady ? 'flex' : 'none';
             document.getElementById('promo-label').innerText = currentSettings.promoText || "";
             
-            document.getElementById('settings-inputs-area').innerHTML = `
-                <div class="flex items-center justify-between p-4 bg-slate-900 rounded-xl border border-slate-800">
-                    <span class="text-sm">Opsi Proyektor</span>
-                    <select id="set-proj-status" onchange="updateSettings()" class="bg-slate-800 border border-slate-700 rounded p-1 text-xs outline-none">
-                        <option value="ready" ${currentSettings.projReady?'selected':''}>Tersedia</option>
-                        <option value="out" ${!currentSettings.projReady?'selected':''}>Kosong</option>
-                    </select>
-                </div>
-                <div class="grid grid-cols-2 gap-3">
-                    <div class="bg-slate-900 p-3 rounded-xl border border-slate-800">
-                        <label class="text-[10px] text-slate-500 uppercase font-bold">6 Jam</label>
-                        <input type="number" id="set-p1" value="${currentSettings.price6}" onchange="updateSettings()" class="w-full bg-transparent outline-none text-sm font-bold">
+            const settingsArea = document.getElementById('settings-inputs-area');
+            if(settingsArea) {
+                settingsArea.innerHTML = `
+                    <div class="flex items-center justify-between p-4 bg-slate-900 rounded-xl border border-slate-800">
+                        <span class="text-sm">Opsi Proyektor</span>
+                        <select id="set-proj-status" onchange="updateSettings()" class="bg-slate-800 border border-slate-700 rounded p-1 text-xs outline-none">
+                            <option value="ready" ${currentSettings.projReady?'selected':''}>Tersedia</option>
+                            <option value="out" ${!currentSettings.projReady?'selected':''}>Kosong</option>
+                        </select>
+                    </div>
+                    <div class="grid grid-cols-2 gap-3">
+                        <div class="bg-slate-900 p-3 rounded-xl border border-slate-800">
+                            <label class="text-[10px] text-slate-500 uppercase font-bold">6 Jam</label>
+                            <input type="number" id="set-p1" value="${currentSettings.price6}" onchange="updateSettings()" class="w-full bg-transparent outline-none text-sm font-bold">
+                        </div>
+                        <div class="bg-slate-900 p-3 rounded-xl border border-slate-800">
+                            <label class="text-[10px] text-slate-500 uppercase font-bold">12 Jam</label>
+                            <input type="number" id="set-p2" value="${currentSettings.price12}" onchange="updateSettings()" class="w-full bg-transparent outline-none text-sm font-bold">
+                        </div>
+                        <div class="bg-slate-900 p-3 rounded-xl border border-slate-800">
+                            <label class="text-[10px] text-slate-500 uppercase font-bold">24 Jam</label>
+                            <input type="number" id="set-p3" value="${currentSettings.price24}" onchange="updateSettings()" class="w-full bg-transparent outline-none text-sm font-bold">
+                        </div>
+                        <div class="bg-slate-900 p-3 rounded-xl border border-slate-800">
+                            <label class="text-[10px] text-slate-500 uppercase font-bold">Harga Proyektor</label>
+                            <input type="number" id="set-pproj" value="${currentSettings.priceProj}" onchange="updateSettings()" class="w-full bg-transparent outline-none text-sm font-bold">
+                        </div>
                     </div>
                     <div class="bg-slate-900 p-3 rounded-xl border border-slate-800">
-                        <label class="text-[10px] text-slate-500 uppercase font-bold">12 Jam</label>
-                        <input type="number" id="set-p2" value="${currentSettings.price12}" onchange="updateSettings()" class="w-full bg-transparent outline-none text-sm font-bold">
+                        <label class="text-[10px] text-slate-500 uppercase font-bold">Teks Promo</label>
+                        <input type="text" id="set-promo" value="${currentSettings.promoText}" onchange="updateSettings()" class="w-full bg-transparent outline-none text-sm" placeholder="Contoh: PROMO WEEKEND!">
                     </div>
-                    <div class="bg-slate-900 p-3 rounded-xl border border-slate-800">
-                        <label class="text-[10px] text-slate-500 uppercase font-bold">24 Jam</label>
-                        <input type="number" id="set-p3" value="${currentSettings.price24}" onchange="updateSettings()" class="w-full bg-transparent outline-none text-sm font-bold">
-                    </div>
-                    <div class="bg-slate-900 p-3 rounded-xl border border-slate-800">
-                        <label class="text-[10px] text-slate-500 uppercase font-bold">Harga Proyektor</label>
-                        <input type="number" id="set-pproj" value="${currentSettings.priceProj}" onchange="updateSettings()" class="w-full bg-transparent outline-none text-sm font-bold">
-                    </div>
-                </div>
-                <div class="bg-slate-900 p-3 rounded-xl border border-slate-800">
-                    <label class="text-[10px] text-slate-500 uppercase font-bold">Teks Promo</label>
-                    <input type="text" id="set-promo" value="${currentSettings.promoText}" onchange="updateSettings()" class="w-full bg-transparent outline-none text-sm" placeholder="Contoh: PROMO WEEKEND!">
-                </div>
-            `;
+                `;
+            }
             recalculateTotal();
         }
 
@@ -366,7 +382,7 @@
             if(document.getElementById('rent-projector').checked) total += currentSettings.priceProj;
             document.getElementById('total-display').innerText = `Rp ${total.toLocaleString()}`;
             
-            const method = Array.from(payRadios).find(r => r.checked).value;
+            const method = Array.from(payRadios).find(r => r.checked)?.value || "Cash";
             document.getElementById('bank-info').style.display = method === 'Transfer BRI' ? 'block' : 'none';
             return total;
         }
@@ -399,76 +415,98 @@
             const list = document.getElementById('admin-rentals-list');
             let card = document.getElementById(`card-${id}`);
             
-            // Logic for visual warning 10 minutes (600 seconds)
             const isWarning = data.remainingSeconds <= 600 && data.remainingSeconds > 0 && data.isRunning;
             const urgent = data.remainingSeconds < 600 && data.status === 'Aktif';
             
-            // Create card if not exists (or replace content)
+            // IF CARD DOES NOT EXIST, CREATE FULL STRUCTURE
             if (!card) {
                 card = document.createElement('div');
                 card.id = `card-${id}`;
                 list.appendChild(card);
+                
+                // Static content that doesn't change often
+                card.innerHTML = `
+                    <div class="flex justify-between items-start mb-3">
+                        <div class="flex-1">
+                            <div class="flex items-center gap-2">
+                                <h4 class="font-bold text-white rental-name">${data.name}</h4>
+                                <span class="text-[9px] bg-slate-800 px-2 py-0.5 rounded border border-slate-700 font-bold uppercase rental-pkg">${data.pkg} Jam</span>
+                            </div>
+                            <p class="text-[10px] text-slate-500 mt-1 uppercase font-bold tracking-tighter rental-info">${data.method} • Rp ${data.total.toLocaleString()}</p>
+                        </div>
+                        <div class="text-right">
+                            <div id="timer-val-${id}" class="text-lg font-mono font-black text-white leading-none">${formatTime(data.remainingSeconds)}</div>
+                            <p id="status-val-${id}" class="text-[9px] font-bold uppercase mt-1">PENDING</p>
+                        </div>
+                    </div>
+
+                    <div id="warning-btn-area-${id}"></div>
+
+                    <div class="flex gap-2 mb-3">
+                        <button id="toggle-btn-${id}" onclick="toggleTimer('${id}', ${data.isRunning})" class="flex-1 py-2 rounded-lg text-xs font-bold shadow-sm">
+                            <i class="fas fa-play mr-1"></i> Start
+                        </button>
+                        <button onclick="sendTimerLink('${id}', '${data.wa}')" class="bg-blue-600 px-4 py-2 rounded-lg text-xs font-bold"><i class="fab fa-whatsapp"></i> Link</button>
+                    </div>
+
+                    <div class="grid grid-cols-4 gap-1 mb-3">
+                        <button onclick="adjustTime('${id}', 3600)" class="bg-slate-800 py-1.5 rounded text-[10px] font-bold border border-slate-700">+1j</button>
+                        <button onclick="adjustTime('${id}', 60)" class="bg-slate-800 py-1.5 rounded text-[10px] font-bold border border-slate-700">+1m</button>
+                        <button onclick="adjustTime('${id}', -60)" class="bg-slate-800 py-1.5 rounded text-[10px] font-bold border border-slate-700 text-red-400">-1m</button>
+                        <button onclick="adjustTime('${id}', -3600)" class="bg-slate-800 py-1.5 rounded text-[10px] font-bold border border-slate-700 text-red-400">-1j</button>
+                    </div>
+
+                    <div class="space-y-2">
+                        <div class="relative">
+                            <textarea id="note-input-${id}" onchange="updateNote('${id}', this.value)" rows="1" class="w-full bg-slate-900 border border-slate-700 rounded-lg p-2 text-[11px] outline-none italic text-blue-300" placeholder="Tulis catatan untuk penyewa..."></textarea>
+                            <i class="fas fa-pen absolute right-2 top-2 text-[9px] text-slate-600"></i>
+                        </div>
+                        <div class="flex justify-between items-center">
+                            <span class="text-[8px] text-slate-600 uppercase">UID: ${id.split('-')[1]}</span>
+                            <button onclick="deleteRental('${id}')" class="text-red-500 text-[10px] hover:underline font-bold"><i class="fas fa-trash-alt mr-1"></i> HAPUS</button>
+                        </div>
+                    </div>
+                `;
+                // Initial note value
+                document.getElementById(`note-input-${id}`).value = data.note || "";
             }
-            
+
+            // UPDATE ONLY THE DYNAMIC PARTS (To keep focus on textarea)
             card.className = "glass-card p-4 transition-all relative " + 
                 (isWarning ? 'timer-warning-bg ' : '') + 
                 (data.status === 'Aktif' ? 'border-l-4 border-green-500' : 'border-l-4 border-yellow-500');
 
-            card.innerHTML = `
-                <div class="flex justify-between items-start mb-3">
-                    <div class="flex-1">
-                        <div class="flex items-center gap-2">
-                            <h4 class="font-bold text-white">${data.name}</h4>
-                            <span class="text-[9px] bg-slate-800 px-2 py-0.5 rounded border border-slate-700 font-bold uppercase">${data.pkg} Jam</span>
-                        </div>
-                        <p class="text-[10px] text-slate-500 mt-1 uppercase font-bold tracking-tighter">${data.method} • Rp ${data.total.toLocaleString()}</p>
-                    </div>
-                    <div class="text-right">
-                        <div class="text-lg font-mono font-black ${urgent?'timer-urgent':'text-white'} leading-none">${formatTime(data.remainingSeconds)}</div>
-                        <p class="text-[9px] ${data.isRunning?'text-green-500':'text-yellow-500'} font-bold uppercase mt-1">${data.isRunning?'BERJALAN':'PAUSED'}</p>
-                    </div>
-                </div>
+            const timerEl = document.getElementById(`timer-val-${id}`);
+            if(timerEl) {
+                timerEl.innerText = formatTime(data.remainingSeconds);
+                timerEl.className = `text-lg font-mono font-black leading-none ${urgent?'timer-urgent':'text-white'}`;
+            }
 
-                <!-- ALERT BUTTON FOR ADMIN -->
-                ${isWarning ? `
+            const statusEl = document.getElementById(`status-val-${id}`);
+            if(statusEl) {
+                statusEl.innerText = data.isRunning ? 'BERJALAN' : 'PAUSED';
+                statusEl.className = `text-[9px] ${data.isRunning?'text-green-500':'text-yellow-500'} font-bold uppercase mt-1`;
+            }
+
+            const toggleBtn = document.getElementById(`toggle-btn-${id}`);
+            if(toggleBtn) {
+                toggleBtn.onclick = () => toggleTimer(id, data.isRunning);
+                toggleBtn.className = `flex-1 ${data.isRunning?'bg-amber-600':'bg-green-600'} py-2 rounded-lg text-xs font-bold shadow-sm`;
+                toggleBtn.innerHTML = `<i class="fas ${data.isRunning?'fa-pause':'fa-play'} mr-1"></i> ${data.isRunning?'Pause':'Start'}`;
+            }
+
+            const warningArea = document.getElementById(`warning-btn-area-${id}`);
+            if(warningArea) {
+                warningArea.innerHTML = isWarning ? `
                     <button onclick="sendWarningWa('${id}', '${data.wa}', '${data.name}')" class="w-full bg-red-600 hover:bg-red-700 text-white text-xs font-bold py-2 rounded-lg mb-3 animate-pulse">
                         <i class="fab fa-whatsapp"></i> KIRIM PERINGATAN (10 MENIT!)
                     </button>
-                ` : ''}
-
-                <div class="flex gap-2 mb-3">
-                    <button onclick="toggleTimer('${id}', ${data.isRunning})" class="flex-1 ${data.isRunning?'bg-amber-600':'bg-green-600'} py-2 rounded-lg text-xs font-bold shadow-sm">
-                        <i class="fas ${data.isRunning?'fa-pause':'fa-play'} mr-1"></i> ${data.isRunning?'Pause':'Start'}
-                    </button>
-                    <button onclick="sendTimerLink('${id}', '${data.wa}')" class="bg-blue-600 px-4 py-2 rounded-lg text-xs font-bold"><i class="fab fa-whatsapp"></i> Link</button>
-                </div>
-
-                <div class="grid grid-cols-4 gap-1 mb-3">
-                    <button onclick="adjustTime('${id}', 3600)" class="bg-slate-800 py-1.5 rounded text-[10px] font-bold border border-slate-700">+1j</button>
-                    <button onclick="adjustTime('${id}', 60)" class="bg-slate-800 py-1.5 rounded text-[10px] font-bold border border-slate-700">+1m</button>
-                    <button onclick="adjustTime('${id}', -60)" class="bg-slate-800 py-1.5 rounded text-[10px] font-bold border border-slate-700 text-red-400">-1m</button>
-                    <button onclick="adjustTime('${id}', -3600)" class="bg-slate-800 py-1.5 rounded text-[10px] font-bold border border-slate-700 text-red-400">-1j</button>
-                </div>
-
-                <div class="space-y-2">
-                    <div class="relative">
-                        <textarea onchange="updateNote('${id}', this.value)" rows="1" class="w-full bg-slate-900 border border-slate-700 rounded-lg p-2 text-[11px] outline-none italic text-blue-300" placeholder="Tulis catatan untuk penyewa...">${data.note || ""}</textarea>
-                        <i class="fas fa-pen absolute right-2 top-2 text-[9px] text-slate-600"></i>
-                    </div>
-                    <div class="flex justify-between items-center">
-                        <span class="text-[8px] text-slate-600 uppercase">UID: ${id.split('-')[1]}</span>
-                        <button onclick="deleteRental('${id}')" class="text-red-500 text-[10px] hover:underline font-bold"><i class="fas fa-trash-alt mr-1"></i> HAPUS</button>
-                    </div>
-                </div>
-            `;
+                ` : '';
+            }
         }
 
         window.toggleTimer = async (id, run) => {
-            // FIXED: Added check if activeTimers[id] exists to prevent crash
-            if (!activeTimers[id]) {
-                console.error("Timer data not found locally, waiting for sync.");
-                return;
-            }
+            if (!activeTimers[id]) return;
             try {
                 await updateDoc(doc(db, "artifacts", appId, "public", "data", "rentals", id), { 
                     isRunning: !run, 
@@ -477,30 +515,14 @@
                 });
             } catch (error) {
                 console.error("Error updating timer:", error);
-                alert("Gagal mengupdate status timer. Periksa koneksi internet.");
             }
         };
 
         window.adjustTime = async (id, secs) => {
-            // FIXED: Added check if activeTimers[id] exists to prevent crash
             if (!activeTimers[id]) return;
-
             const currentSec = activeTimers[id].remainingSeconds || 0;
             const newVal = Math.max(0, currentSec + secs);
-            
-            // If admin adds time above 10 mins (600s), alarm resets
-            const updates = { 
-                remainingSeconds: newVal, 
-                lastUpdate: Date.now() 
-            };
-            
-            // If adding time back above 10 mins, reset warned status so it triggers again later
-            if (newVal > 600) {
-                 // We don't save 'warned10' to DB usually to keep it simple, 
-                 // but we can clear local state if we were tracking it.
-                 // The logic below handles the >600 check naturally.
-            }
-
+            const updates = { remainingSeconds: newVal, lastUpdate: Date.now() };
             try {
                 await updateDoc(doc(db, "artifacts", appId, "public", "data", "rentals", id), updates);
             } catch (error) {
@@ -509,7 +531,11 @@
         };
 
         window.updateNote = async (id, val) => {
-            await updateDoc(doc(db, "artifacts", appId, "public", "data", "rentals", id), { note: val });
+            try {
+                await updateDoc(doc(db, "artifacts", appId, "public", "data", "rentals", id), { note: val });
+            } catch (error) {
+                console.error("Error update note:", error);
+            }
         };
 
         window.deleteRental = async (id) => { 
@@ -529,40 +555,23 @@
         function updateAllTimers() {
             Object.keys(activeTimers).forEach(async id => {
                 const data = activeTimers[id];
-                
-                // Initialize local warned flag if not present
-                if (typeof data.hasAutoWarned === 'undefined') {
-                    activeTimers[id].hasAutoWarned = false;
-                }
-
                 if (data.isRunning && data.remainingSeconds > 0) {
                     const now = Date.now();
                     const diff = Math.floor((now - data.lastUpdate) / 1000);
                     if (diff >= 1) {
                         const newSecs = Math.max(0, data.remainingSeconds - diff);
-                        
-                        // Update local UI immediately for Admin
                         activeTimers[id].remainingSeconds = newSecs;
                         activeTimers[id].lastUpdate = now;
                         
-                        // --- ADMIN LOGIC: 10 MINUTE TRIGGER ---
-                        if (newSecs === 600) { // Exactly 10 minutes left
-                            // 1. Play Alarm in Admin
+                        if (newSecs === 600) { 
                             playBeep('warning');
-                            // 2. Try Auto Send WA (Popup) - Browsers might block this without click, hence the button added in renderRentalItem
-                            // We try anyway:
                             if (!activeTimers[id].hasAutoWarned) {
                                 window.sendWarningWa(id, data.wa, data.name);
                                 activeTimers[id].hasAutoWarned = true;
                             }
                         }
-                        
-                        // Reset warning flag if time added back
-                        if (newSecs > 600) {
-                            activeTimers[id].hasAutoWarned = false;
-                        }
+                        if (newSecs > 600) activeTimers[id].hasAutoWarned = false;
 
-                        // Sync to database every 5 seconds to minimize writes but keep it fairly real-time
                         if (newSecs % 5 === 0 || newSecs === 0 || newSecs === 600) {
                             await updateDoc(doc(db, "artifacts", appId, "public", "data", "rentals", id), { 
                                 remainingSeconds: newSecs, 
@@ -571,8 +580,7 @@
                             });
                         }
                         
-                        // Re-render admin card to show red warning button if in range
-                        if (document.getElementById('page-admin-dashboard').classList.contains('hidden-section') === false) {
+                        if (!document.getElementById('page-admin-dashboard').classList.contains('hidden-section')) {
                             renderRentalItem(id, activeTimers[id]); 
                         }
                     }
@@ -590,7 +598,6 @@
             const timerId = new URLSearchParams(window.location.search).get('t');
             if (timerId) {
                 showPage('page-timer');
-                // Real-time listener for the Specific Penyewa
                 onSnapshot(doc(db, "artifacts", appId, "public", "data", "rentals", timerId), (snap) => {
                     if (snap.exists()) {
                         const d = snap.data();
@@ -613,41 +620,32 @@
                 const alertBox = document.getElementById('timer-alert-box');
                 const icon = document.getElementById('user-timer-icon');
                 
-                // If it's paused, we use the saved value, if running we calculate local drift
                 let displaySecs = d.remainingSeconds;
                 if(d.isRunning) {
                     const drift = Math.floor((Date.now() - d.lastUpdate) / 1000);
                     displaySecs = Math.max(0, d.remainingSeconds - drift);
                 }
 
-                el.innerText = formatTime(displaySecs);
+                if(el) el.innerText = formatTime(displaySecs);
                 
-                // --- USER SIDE ALARM LOGIC ---
-                // 1. If 10 mins or less (600s) AND running AND > 0
                 if(displaySecs <= 600 && displaySecs > 0 && d.isRunning) {
-                    el.classList.add('timer-urgent');
-                    alertBox.classList.remove('hidden');
-                    icon.classList.remove('bg-blue-600');
-                    icon.classList.add('bg-red-600', 'animate-pulse');
-                    
-                    // Beep every 5 seconds
+                    if(el) el.classList.add('timer-urgent');
+                    if(alertBox) alertBox.classList.remove('hidden');
+                    if(icon) icon.classList.add('bg-red-600', 'animate-pulse');
                     if (displaySecs % 5 === 0) playBeep('warning');
-                } 
-                // 2. If Time Added (> 10 mins), stop alarm visuals
-                else if (displaySecs > 600) {
-                    el.classList.remove('timer-urgent');
-                    alertBox.classList.add('hidden');
-                    icon.classList.add('bg-blue-600');
-                    icon.classList.remove('bg-red-600', 'animate-pulse');
+                } else if (displaySecs > 600) {
+                    if(el) el.classList.remove('timer-urgent');
+                    if(alertBox) alertBox.classList.add('hidden');
+                    if(icon) icon.classList.remove('bg-red-600', 'animate-pulse');
                 }
                 
-                // 3. Time Ended
                 if(displaySecs <= 0) {
-                    el.innerText = "00:00:00";
-                    document.getElementById('timer-user-status').innerText = "WAKTU HABIS";
-                    document.getElementById('timer-user-status').classList.add('text-red-500');
-                    
-                    // Play End Sound once every few seconds if user still viewing
+                    if(el) el.innerText = "00:00:00";
+                    const status = document.getElementById('timer-user-status');
+                    if(status) {
+                        status.innerText = "WAKTU HABIS";
+                        status.classList.add('text-red-500');
+                    }
                     if (Date.now() % 4000 < 500) playBeep('end');
                 }
             }
