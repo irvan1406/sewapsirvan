@@ -15,6 +15,8 @@
         @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.5; } }
         .hidden-section { display: none; }
         input[type="radio"]:checked + label { border-color: #3b82f6; background-color: rgba(59, 130, 246, 0.1); }
+        .custom-scrollbar::-webkit-scrollbar { width: 4px; }
+        .custom-scrollbar::-webkit-scrollbar-thumb { background: #334155; border-radius: 10px; }
     </style>
 </head>
 <body class="min-h-screen pb-10" onclick="initAudioContext()">
@@ -101,34 +103,46 @@
 
         <!-- PAGE: TIMER VIEW (Public/Penyewa) -->
         <section id="page-timer" class="hidden-section text-center py-10">
-            <div class="glass-card p-8">
-                <div id="user-timer-icon" class="w-16 h-16 bg-blue-600 rounded-full flex items-center justify-center mx-auto mb-4 shadow-xl shadow-blue-500/20">
-                    <i class="fas fa-stopwatch text-2xl"></i>
+            <div class="glass-card p-6">
+                <div id="user-timer-icon" class="w-14 h-14 bg-blue-600 rounded-full flex items-center justify-center mx-auto mb-4 shadow-xl shadow-blue-500/20">
+                    <i class="fas fa-stopwatch text-xl"></i>
                 </div>
-                <h3 id="timer-user-name" class="text-2xl font-bold mb-1">-</h3>
-                <p id="timer-user-status" class="text-blue-400 text-xs font-bold uppercase tracking-widest mb-6">Sisa Waktu Bermain</p>
+                <h3 id="timer-user-name" class="text-xl font-bold mb-1">-</h3>
+                <p id="timer-user-status" class="text-blue-400 text-[10px] font-bold uppercase tracking-widest mb-4">Sisa Waktu Bermain</p>
                 
-                <div id="timer-display" class="text-7xl font-black mb-6 tracking-tighter font-mono bg-slate-900 py-4 rounded-2xl border border-slate-800 shadow-inner">00:00:00</div>
+                <div id="timer-display" class="text-6xl font-black mb-6 tracking-tighter font-mono bg-slate-900 py-4 rounded-2xl border border-slate-800 shadow-inner">00:00:00</div>
                 
                 <div id="timer-alert-box" class="hidden mb-6 p-3 bg-red-500/20 border border-red-500 rounded-lg animate-pulse">
                     <p class="text-red-400 font-bold text-sm">⚠️ WAKTU HAMPIR HABIS! ⚠️</p>
-                    <p class="text-[10px] text-red-300">Siap-siap atau perpanjang sekarang.</p>
                 </div>
 
-                <div class="bg-slate-800/80 p-4 rounded-xl border border-slate-700 mb-6">
-                    <p class="text-[10px] text-slate-500 uppercase font-bold mb-2">Pesan dari Admin:</p>
+                <!-- ADMIN IMAGE BOX -->
+                <div id="timer-image-container" class="hidden mb-6 overflow-hidden rounded-xl border border-slate-700">
+                    <img id="timer-admin-image" src="" alt="Lampiran Admin" class="w-full h-auto object-cover">
+                </div>
+
+                <div class="bg-slate-800/80 p-4 rounded-xl border border-slate-700 mb-6 text-left">
+                    <p class="text-[10px] text-slate-500 uppercase font-bold mb-2 flex items-center gap-1">
+                        <i class="fas fa-comment-dots text-blue-500"></i> Pesan Admin:
+                    </p>
                     <div id="timer-note" class="italic text-sm text-blue-200">
-                        Menunggu Admin mengaktifkan timer...
+                        Menunggu Admin...
+                    </div>
+                </div>
+
+                <!-- RULES SECTION FOR USER -->
+                <div id="rules-section" class="bg-slate-900/50 p-4 rounded-xl border border-slate-800 mb-6 text-left">
+                    <p class="text-[10px] text-slate-500 uppercase font-bold mb-2 flex items-center gap-1">
+                        <i class="fas fa-gavel text-amber-500"></i> Syarat & Aturan:
+                    </p>
+                    <div id="timer-rules-display" class="text-[11px] text-slate-400 whitespace-pre-wrap leading-relaxed max-h-40 overflow-y-auto custom-scrollbar">
+                        Memuat aturan...
                     </div>
                 </div>
                 
-                <button onclick="location.reload()" class="bg-slate-800 px-6 py-2 rounded-full text-xs text-slate-400 border border-slate-700 hover:bg-slate-700 transition-all">
+                <button onclick="location.reload()" class="bg-slate-800 px-6 py-2 rounded-full text-[10px] text-slate-400 border border-slate-700 hover:bg-slate-700 transition-all">
                     <i class="fas fa-sync-alt mr-1"></i> Refresh Status
                 </button>
-                
-                <div class="mt-4">
-                    <button onclick="testAlarm()" class="text-[10px] text-slate-600 underline">Test Audio Alarm</button>
-                </div>
             </div>
         </section>
 
@@ -170,6 +184,10 @@
                     <h2 class="text-lg font-bold">Pengaturan Bisnis</h2>
                 </div>
                 <div class="space-y-4" id="settings-inputs-area"></div>
+                <div class="mt-6">
+                    <label class="text-[10px] text-slate-500 uppercase font-bold mb-2 block">Master Syarat & Aturan</label>
+                    <textarea id="set-rules" onchange="updateSettings()" rows="6" class="w-full bg-slate-900 border border-slate-800 rounded-xl p-3 text-xs outline-none text-slate-300 leading-relaxed" placeholder="Tulis aturan penyewaan di sini..."></textarea>
+                </div>
             </div>
         </section>
     </main>
@@ -194,7 +212,7 @@
         const ADMIN_PIN = "311225";
         const ADMIN_WA = "+6287745756269";
 
-        let currentSettings = { price6: 30000, price12: 50000, price24: 80000, priceProj: 15000, projReady: true, promoText: "" };
+        let currentSettings = { price6: 30000, price12: 50000, price24: 80000, priceProj: 15000, projReady: true, promoText: "", rules: "1. Wajib menjaga kebersihan alat.\n2. Dilarang mengubah settingan PS.\n3. Kerusakan ditanggung penyewa." };
         let logoClickCount = 0;
         let activeTimers = {};
         let syncInterval = null;
@@ -209,18 +227,12 @@
             }
         };
 
-        window.testAlarm = () => {
-            initAudioContext();
-            playBeep('warning');
-        };
-
         function playBeep(type) {
             if (!audioContext) return;
             const osc = audioContext.createOscillator();
             const gain = audioContext.createGain();
             osc.connect(gain);
             gain.connect(audioContext.destination);
-
             if (type === 'warning') {
                 osc.type = 'square';
                 osc.frequency.setValueAtTime(880, audioContext.currentTime); 
@@ -241,44 +253,36 @@
         async function initApp() {
             onSnapshot(doc(db, "artifacts", appId, "public", "settings"), (snap) => {
                 if (snap.exists()) {
-                    currentSettings = snap.data();
+                    currentSettings = { ...currentSettings, ...snap.data() };
                     updateUIWithSettings();
+                    // Update rules in timer page if open
+                    const rulesDisp = document.getElementById('timer-rules-display');
+                    if(rulesDisp) rulesDisp.innerText = currentSettings.rules;
                 } else { updateSettings(); }
             });
 
-            // Rentals Sync (Real-time for Admin)
             onSnapshot(collection(db, "artifacts", appId, "public", "data", "rentals"), (snap) => {
                 const list = document.getElementById('admin-rentals-list');
-                
-                // Track IDs in current snap
                 const currentIds = [];
                 snap.forEach(docSnap => {
                     const data = docSnap.data();
                     const id = docSnap.id;
                     currentIds.push(id);
-                    
                     const previousData = activeTimers[id] || {};
                     activeTimers[id] = { ...data, hasAutoWarned: previousData.hasAutoWarned || false }; 
-                    
-                    // RENDER ONLY IF NOT EXISTS, otherwise update specific elements to avoid focus loss
                     renderRentalItem(id, activeTimers[id]);
                 });
                 
-                // Cleanup removed rentals from UI
                 const allCards = list.querySelectorAll('[id^="card-"]');
                 allCards.forEach(card => {
                     const cardId = card.id.replace('card-', '');
-                    if (!currentIds.includes(cardId)) {
-                        card.remove();
-                        delete activeTimers[cardId];
-                    }
+                    if (!currentIds.includes(cardId)) { card.remove(); delete activeTimers[cardId]; }
                 });
 
                 if(snap.empty) {
                     list.innerHTML = `<div id="empty-msg" class="text-center py-10 text-slate-500 italic text-sm">Belum ada penyewa hari ini...</div>`;
-                } else {
-                    const emptyMsg = document.getElementById('empty-msg');
-                    if(emptyMsg) emptyMsg.remove();
+                } else if(document.getElementById('empty-msg')) {
+                    document.getElementById('empty-msg').remove();
                 }
             });
 
@@ -312,14 +316,17 @@
 
         function updateUIWithSettings() {
             const pkgSelect = document.getElementById('rent-package');
-            pkgSelect.innerHTML = `
-                <option value="6">6 Jam - Rp ${currentSettings.price6.toLocaleString()}</option>
-                <option value="12">12 Jam - Rp ${currentSettings.price12.toLocaleString()}</option>
-                <option value="24">24 Jam - Rp ${currentSettings.price24.toLocaleString()}</option>
-            `;
-            document.getElementById('price-proj').innerText = currentSettings.priceProj.toLocaleString();
-            document.getElementById('proyektor-option').style.display = currentSettings.projReady ? 'flex' : 'none';
-            document.getElementById('promo-label').innerText = currentSettings.promoText || "";
+            if(pkgSelect) {
+                pkgSelect.innerHTML = `
+                    <option value="6">6 Jam - Rp ${currentSettings.price6.toLocaleString()}</option>
+                    <option value="12">12 Jam - Rp ${currentSettings.price12.toLocaleString()}</option>
+                    <option value="24">24 Jam - Rp ${currentSettings.price24.toLocaleString()}</option>
+                `;
+            }
+            if(document.getElementById('price-proj')) document.getElementById('price-proj').innerText = currentSettings.priceProj.toLocaleString();
+            if(document.getElementById('proyektor-option')) document.getElementById('proyektor-option').style.display = currentSettings.projReady ? 'flex' : 'none';
+            if(document.getElementById('promo-label')) document.getElementById('promo-label').innerText = currentSettings.promoText || "";
+            if(document.getElementById('set-rules')) document.getElementById('set-rules').value = currentSettings.rules || "";
             
             const settingsArea = document.getElementById('settings-inputs-area');
             if(settingsArea) {
@@ -360,106 +367,96 @@
 
         window.updateSettings = async () => {
             const data = {
-                price6: parseInt(document.getElementById('set-p1').value),
-                price12: parseInt(document.getElementById('set-p2').value),
-                price24: parseInt(document.getElementById('set-p3').value),
-                priceProj: parseInt(document.getElementById('set-pproj').value),
-                projReady: document.getElementById('set-proj-status').value === 'ready',
-                promoText: document.getElementById('set-promo').value
+                price6: parseInt(document.getElementById('set-p1')?.value || currentSettings.price6),
+                price12: parseInt(document.getElementById('set-p2')?.value || currentSettings.price12),
+                price24: parseInt(document.getElementById('set-p3')?.value || currentSettings.price24),
+                priceProj: parseInt(document.getElementById('set-pproj')?.value || currentSettings.priceProj),
+                projReady: document.getElementById('set-proj-status')?.value === 'ready',
+                promoText: document.getElementById('set-promo')?.value || currentSettings.promoText,
+                rules: document.getElementById('set-rules')?.value || currentSettings.rules
             };
             await setDoc(doc(db, "artifacts", appId, "public", "settings"), data);
         };
 
-        const rentForm = document.getElementById('rent-form');
-        const payRadios = document.getElementsByName('pay-method');
-
         function recalculateTotal() {
             let total = 0;
-            const pkg = document.getElementById('rent-package').value;
+            const pkg = document.getElementById('rent-package')?.value || "6";
             if(pkg === "6") total = currentSettings.price6;
             else if(pkg === "12") total = currentSettings.price12;
             else if(pkg === "24") total = currentSettings.price24;
-            if(document.getElementById('rent-projector').checked) total += currentSettings.priceProj;
-            document.getElementById('total-display').innerText = `Rp ${total.toLocaleString()}`;
-            
-            const method = Array.from(payRadios).find(r => r.checked)?.value || "Cash";
-            document.getElementById('bank-info').style.display = method === 'Transfer BRI' ? 'block' : 'none';
+            if(document.getElementById('rent-projector')?.checked) total += currentSettings.priceProj;
+            if(document.getElementById('total-display')) document.getElementById('total-display').innerText = `Rp ${total.toLocaleString()}`;
+            const method = Array.from(document.getElementsByName('pay-method')).find(r => r.checked)?.value || "Cash";
+            if(document.getElementById('bank-info')) document.getElementById('bank-info').style.display = method === 'Transfer BRI' ? 'block' : 'none';
             return total;
         }
 
-        document.getElementById('rent-package').onchange = recalculateTotal;
-        document.getElementById('rent-projector').onchange = recalculateTotal;
-        payRadios.forEach(r => r.onchange = recalculateTotal);
+        if(document.getElementById('rent-package')) document.getElementById('rent-package').onchange = recalculateTotal;
+        if(document.getElementById('rent-projector')) document.getElementById('rent-projector').onchange = recalculateTotal;
+        document.getElementsByName('pay-method').forEach(r => r.onchange = recalculateTotal);
 
-        rentForm.onsubmit = async (e) => {
+        document.getElementById('rent-form').onsubmit = async (e) => {
             e.preventDefault();
             const name = document.getElementById('rent-name').value;
             const wa = document.getElementById('rent-wa').value;
             const pkg = document.getElementById('rent-package').value;
-            const method = Array.from(payRadios).find(r => r.checked).value;
+            const method = Array.from(document.getElementsByName('pay-method')).find(r => r.checked).value;
             const total = recalculateTotal();
             const id = "RENT-" + Date.now();
-
             await setDoc(doc(db, "artifacts", appId, "public", "data", "rentals", id), {
                 name, wa, pkg, total, method, status: "Belum Dibayar", createdAt: serverTimestamp(),
-                remainingSeconds: parseInt(pkg)*3600, isRunning: false, lastUpdate: Date.now(), note: "Halo " + name + ", pesanan diterima. Silahkan bayar via " + method
+                remainingSeconds: parseInt(pkg)*3600, isRunning: false, lastUpdate: Date.now(), note: "Halo " + name + ", pesanan diterima. Silahkan bayar via " + method,
+                imageUrl: ""
             });
-
             const msg = `Halo Admin Irvan, saya ingin sewa PS3.\n\nNama: ${name}\nPaket: ${pkg} Jam\nTotal: Rp ${total.toLocaleString()}\nMetode: ${method}\n\nMohon dicek. Terima kasih.`;
             window.open(`https://wa.me/${ADMIN_WA}?text=${encodeURIComponent(msg)}`, '_blank');
             alert("Pesanan terkirim! Klik 'Konfirmasi' di WhatsApp agar admin memproses sewa Anda.");
-            rentForm.reset(); recalculateTotal();
+            e.target.reset(); recalculateTotal();
         };
 
         function renderRentalItem(id, data) {
             const list = document.getElementById('admin-rentals-list');
             let card = document.getElementById(`card-${id}`);
-            
             const isWarning = data.remainingSeconds <= 600 && data.remainingSeconds > 0 && data.isRunning;
             const urgent = data.remainingSeconds < 600 && data.status === 'Aktif';
             
-            // IF CARD DOES NOT EXIST, CREATE FULL STRUCTURE
             if (!card) {
                 card = document.createElement('div');
                 card.id = `card-${id}`;
                 list.appendChild(card);
-                
-                // Static content that doesn't change often
                 card.innerHTML = `
                     <div class="flex justify-between items-start mb-3">
                         <div class="flex-1">
                             <div class="flex items-center gap-2">
-                                <h4 class="font-bold text-white rental-name">${data.name}</h4>
-                                <span class="text-[9px] bg-slate-800 px-2 py-0.5 rounded border border-slate-700 font-bold uppercase rental-pkg">${data.pkg} Jam</span>
+                                <h4 class="font-bold text-white">${data.name}</h4>
+                                <span class="text-[9px] bg-slate-800 px-2 py-0.5 rounded border border-slate-700 font-bold uppercase">${data.pkg} Jam</span>
                             </div>
-                            <p class="text-[10px] text-slate-500 mt-1 uppercase font-bold tracking-tighter rental-info">${data.method} • Rp ${data.total.toLocaleString()}</p>
+                            <p class="text-[10px] text-slate-500 mt-1 uppercase font-bold tracking-tighter">${data.method} • Rp ${data.total.toLocaleString()}</p>
                         </div>
                         <div class="text-right">
                             <div id="timer-val-${id}" class="text-lg font-mono font-black text-white leading-none">${formatTime(data.remainingSeconds)}</div>
                             <p id="status-val-${id}" class="text-[9px] font-bold uppercase mt-1">PENDING</p>
                         </div>
                     </div>
-
                     <div id="warning-btn-area-${id}"></div>
-
                     <div class="flex gap-2 mb-3">
-                        <button id="toggle-btn-${id}" onclick="toggleTimer('${id}', ${data.isRunning})" class="flex-1 py-2 rounded-lg text-xs font-bold shadow-sm">
-                            <i class="fas fa-play mr-1"></i> Start
-                        </button>
+                        <button id="toggle-btn-${id}" class="flex-1 py-2 rounded-lg text-xs font-bold shadow-sm"></button>
                         <button onclick="sendTimerLink('${id}', '${data.wa}')" class="bg-blue-600 px-4 py-2 rounded-lg text-xs font-bold"><i class="fab fa-whatsapp"></i> Link</button>
                     </div>
-
                     <div class="grid grid-cols-4 gap-1 mb-3">
                         <button onclick="adjustTime('${id}', 3600)" class="bg-slate-800 py-1.5 rounded text-[10px] font-bold border border-slate-700">+1j</button>
                         <button onclick="adjustTime('${id}', 60)" class="bg-slate-800 py-1.5 rounded text-[10px] font-bold border border-slate-700">+1m</button>
                         <button onclick="adjustTime('${id}', -60)" class="bg-slate-800 py-1.5 rounded text-[10px] font-bold border border-slate-700 text-red-400">-1m</button>
                         <button onclick="adjustTime('${id}', -3600)" class="bg-slate-800 py-1.5 rounded text-[10px] font-bold border border-slate-700 text-red-400">-1j</button>
                     </div>
-
                     <div class="space-y-2">
                         <div class="relative">
-                            <textarea id="note-input-${id}" onchange="updateNote('${id}', this.value)" rows="1" class="w-full bg-slate-900 border border-slate-700 rounded-lg p-2 text-[11px] outline-none italic text-blue-300" placeholder="Tulis catatan untuk penyewa..."></textarea>
+                            <textarea id="note-input-${id}" onchange="updateField('${id}', 'note', this.value)" rows="1" class="w-full bg-slate-900 border border-slate-700 rounded-lg p-2 text-[11px] outline-none italic text-blue-300" placeholder="Catatan..."></textarea>
                             <i class="fas fa-pen absolute right-2 top-2 text-[9px] text-slate-600"></i>
+                        </div>
+                        <div class="relative">
+                            <input id="img-input-${id}" type="text" onchange="updateField('${id}', 'imageUrl', this.value)" class="w-full bg-slate-900 border border-slate-700 rounded-lg p-2 text-[10px] outline-none text-slate-400" placeholder="URL Gambar (Opsional)...">
+                            <i class="fas fa-image absolute right-2 top-2 text-[9px] text-slate-600"></i>
                         </div>
                         <div class="flex justify-between items-center">
                             <span class="text-[8px] text-slate-600 uppercase">UID: ${id.split('-')[1]}</span>
@@ -467,88 +464,57 @@
                         </div>
                     </div>
                 `;
-                // Initial note value
-                document.getElementById(`note-input-${id}`).value = data.note || "";
             }
+            
+            // Re-sync input values if not focused
+            if(document.activeElement !== document.getElementById(`note-input-${id}`)) document.getElementById(`note-input-${id}`).value = data.note || "";
+            if(document.activeElement !== document.getElementById(`img-input-${id}`)) document.getElementById(`img-input-${id}`).value = data.imageUrl || "";
 
-            // UPDATE ONLY THE DYNAMIC PARTS (To keep focus on textarea)
-            card.className = "glass-card p-4 transition-all relative " + 
-                (isWarning ? 'timer-warning-bg ' : '') + 
-                (data.status === 'Aktif' ? 'border-l-4 border-green-500' : 'border-l-4 border-yellow-500');
-
+            card.className = "glass-card p-4 transition-all relative " + (isWarning ? 'timer-warning-bg ' : '') + (data.status === 'Aktif' ? 'border-l-4 border-green-500' : 'border-l-4 border-yellow-500');
             const timerEl = document.getElementById(`timer-val-${id}`);
-            if(timerEl) {
-                timerEl.innerText = formatTime(data.remainingSeconds);
-                timerEl.className = `text-lg font-mono font-black leading-none ${urgent?'timer-urgent':'text-white'}`;
-            }
-
+            if(timerEl) { timerEl.innerText = formatTime(data.remainingSeconds); timerEl.className = `text-lg font-mono font-black leading-none ${urgent?'timer-urgent':'text-white'}`; }
             const statusEl = document.getElementById(`status-val-${id}`);
-            if(statusEl) {
-                statusEl.innerText = data.isRunning ? 'BERJALAN' : 'PAUSED';
-                statusEl.className = `text-[9px] ${data.isRunning?'text-green-500':'text-yellow-500'} font-bold uppercase mt-1`;
-            }
-
+            if(statusEl) { statusEl.innerText = data.isRunning ? 'BERJALAN' : 'PAUSED'; statusEl.className = `text-[9px] ${data.isRunning?'text-green-500':'text-yellow-500'} font-bold uppercase mt-1`; }
             const toggleBtn = document.getElementById(`toggle-btn-${id}`);
             if(toggleBtn) {
                 toggleBtn.onclick = () => toggleTimer(id, data.isRunning);
                 toggleBtn.className = `flex-1 ${data.isRunning?'bg-amber-600':'bg-green-600'} py-2 rounded-lg text-xs font-bold shadow-sm`;
                 toggleBtn.innerHTML = `<i class="fas ${data.isRunning?'fa-pause':'fa-play'} mr-1"></i> ${data.isRunning?'Pause':'Start'}`;
             }
-
             const warningArea = document.getElementById(`warning-btn-area-${id}`);
             if(warningArea) {
                 warningArea.innerHTML = isWarning ? `
                     <button onclick="sendWarningWa('${id}', '${data.wa}', '${data.name}')" class="w-full bg-red-600 hover:bg-red-700 text-white text-xs font-bold py-2 rounded-lg mb-3 animate-pulse">
-                        <i class="fab fa-whatsapp"></i> KIRIM PERINGATAN (10 MENIT!)
+                        <i class="fab fa-whatsapp"></i> PERINGATAN (10 MENIT!)
                     </button>
                 ` : '';
             }
         }
 
         window.toggleTimer = async (id, run) => {
-            if (!activeTimers[id]) return;
-            try {
-                await updateDoc(doc(db, "artifacts", appId, "public", "data", "rentals", id), { 
-                    isRunning: !run, 
-                    status: "Aktif", 
-                    lastUpdate: Date.now() 
-                });
-            } catch (error) {
-                console.error("Error updating timer:", error);
-            }
+            await updateDoc(doc(db, "artifacts", appId, "public", "data", "rentals", id), { isRunning: !run, status: "Aktif", lastUpdate: Date.now() });
         };
 
         window.adjustTime = async (id, secs) => {
-            if (!activeTimers[id]) return;
             const currentSec = activeTimers[id].remainingSeconds || 0;
             const newVal = Math.max(0, currentSec + secs);
-            const updates = { remainingSeconds: newVal, lastUpdate: Date.now() };
-            try {
-                await updateDoc(doc(db, "artifacts", appId, "public", "data", "rentals", id), updates);
-            } catch (error) {
-                console.error("Error adjusting time:", error);
-            }
+            await updateDoc(doc(db, "artifacts", appId, "public", "data", "rentals", id), { remainingSeconds: newVal, lastUpdate: Date.now() });
         };
 
-        window.updateNote = async (id, val) => {
-            try {
-                await updateDoc(doc(db, "artifacts", appId, "public", "data", "rentals", id), { note: val });
-            } catch (error) {
-                console.error("Error update note:", error);
-            }
+        window.updateField = async (id, field, val) => {
+            const updates = {}; updates[field] = val;
+            await updateDoc(doc(db, "artifacts", appId, "public", "data", "rentals", id), updates);
         };
 
-        window.deleteRental = async (id) => { 
-            if(confirm("Hapus data penyewa ini?")) await deleteDoc(doc(db, "artifacts", appId, "public", "data", "rentals", id)); 
-        };
+        window.deleteRental = async (id) => { if(confirm("Hapus data penyewa ini?")) await deleteDoc(doc(db, "artifacts", appId, "public", "data", "rentals", id)); };
 
         window.sendTimerLink = (id, wa) => {
             const url = window.location.href.split('?')[0] + "?t=" + id;
-            window.open(`https://wa.me/${wa}?text=${encodeURIComponent("Halo, ini link untuk memantau sisa waktu sewa PS3 Anda secara real-time:\n\n" + url)}`, '_blank');
+            window.open(`https://wa.me/${wa}?text=${encodeURIComponent("Halo, link pantau sisa waktu sewa PS3:\n" + url)}`, '_blank');
         };
 
         window.sendWarningWa = (id, wa, name) => {
-            const msg = `Halo ${name}, waktu sewa PS3 Anda tersisa 10 menit lagi. Harap bersiap-siap. Jika pengembalian terlambat akan dikenakan DENDA Rp 10.000 per jam.`;
+            const msg = `Halo ${name}, sisa 10 menit. Harap bersiap. Denda terlambat Rp 10.000/jam.`;
             window.open(`https://wa.me/${wa}?text=${encodeURIComponent(msg)}`, '_blank');
         };
 
@@ -562,27 +528,14 @@
                         const newSecs = Math.max(0, data.remainingSeconds - diff);
                         activeTimers[id].remainingSeconds = newSecs;
                         activeTimers[id].lastUpdate = now;
-                        
-                        if (newSecs === 600) { 
-                            playBeep('warning');
-                            if (!activeTimers[id].hasAutoWarned) {
-                                window.sendWarningWa(id, data.wa, data.name);
-                                activeTimers[id].hasAutoWarned = true;
-                            }
+                        if (newSecs === 600 && !activeTimers[id].hasAutoWarned) { 
+                            playBeep('warning'); 
+                            activeTimers[id].hasAutoWarned = true; 
                         }
-                        if (newSecs > 600) activeTimers[id].hasAutoWarned = false;
-
-                        if (newSecs % 5 === 0 || newSecs === 0 || newSecs === 600) {
-                            await updateDoc(doc(db, "artifacts", appId, "public", "data", "rentals", id), { 
-                                remainingSeconds: newSecs, 
-                                lastUpdate: now, 
-                                isRunning: newSecs > 0 
-                            });
+                        if (newSecs % 5 === 0 || newSecs === 0) {
+                            await updateDoc(doc(db, "artifacts", appId, "public", "data", "rentals", id), { remainingSeconds: newSecs, lastUpdate: now, isRunning: newSecs > 0 });
                         }
-                        
-                        if (!document.getElementById('page-admin-dashboard').classList.contains('hidden-section')) {
-                            renderRentalItem(id, activeTimers[id]); 
-                        }
+                        if (!document.getElementById('page-admin-dashboard').classList.contains('hidden-section')) renderRentalItem(id, activeTimers[id]);
                     }
                 }
             });
@@ -602,11 +555,21 @@
                     if (snap.exists()) {
                         const d = snap.data();
                         document.getElementById('timer-user-name').innerText = d.name;
-                        document.getElementById('timer-note').innerText = d.note || "Tidak ada pesan tambahan.";
+                        document.getElementById('timer-note').innerText = d.note || "Tidak ada pesan.";
+                        
+                        // Handle Image from Admin
+                        const imgContainer = document.getElementById('timer-image-container');
+                        const imgEl = document.getElementById('timer-admin-image');
+                        if(d.imageUrl) {
+                            imgEl.src = d.imageUrl;
+                            imgContainer.classList.remove('hidden');
+                        } else {
+                            imgContainer.classList.add('hidden');
+                        }
+                        
                         activeTimers[timerId] = d;
                     } else {
                         document.getElementById('timer-display').innerText = "EXPIRED";
-                        document.getElementById('timer-note').innerText = "Data sewa telah berakhir atau dihapus.";
                     }
                 });
             }
@@ -617,35 +580,16 @@
             if (tId && activeTimers[tId]) {
                 const d = activeTimers[tId];
                 const el = document.getElementById('timer-display');
-                const alertBox = document.getElementById('timer-alert-box');
-                const icon = document.getElementById('user-timer-icon');
-                
                 let displaySecs = d.remainingSeconds;
-                if(d.isRunning) {
-                    const drift = Math.floor((Date.now() - d.lastUpdate) / 1000);
-                    displaySecs = Math.max(0, d.remainingSeconds - drift);
-                }
-
+                if(d.isRunning) displaySecs = Math.max(0, d.remainingSeconds - Math.floor((Date.now() - d.lastUpdate) / 1000));
                 if(el) el.innerText = formatTime(displaySecs);
-                
                 if(displaySecs <= 600 && displaySecs > 0 && d.isRunning) {
-                    if(el) el.classList.add('timer-urgent');
-                    if(alertBox) alertBox.classList.remove('hidden');
-                    if(icon) icon.classList.add('bg-red-600', 'animate-pulse');
+                    el?.classList.add('timer-urgent');
+                    document.getElementById('timer-alert-box')?.classList.remove('hidden');
                     if (displaySecs % 5 === 0) playBeep('warning');
-                } else if (displaySecs > 600) {
-                    if(el) el.classList.remove('timer-urgent');
-                    if(alertBox) alertBox.classList.add('hidden');
-                    if(icon) icon.classList.remove('bg-red-600', 'animate-pulse');
                 }
-                
                 if(displaySecs <= 0) {
                     if(el) el.innerText = "00:00:00";
-                    const status = document.getElementById('timer-user-status');
-                    if(status) {
-                        status.innerText = "WAKTU HABIS";
-                        status.classList.add('text-red-500');
-                    }
                     if (Date.now() % 4000 < 500) playBeep('end');
                 }
             }
@@ -655,13 +599,13 @@
             const num = document.getElementById('acc-number').innerText;
             navigator.clipboard.writeText(num).then(() => {
                 const el = document.getElementById('acc-number');
-                const oldText = el.innerText;
-                el.innerText = "BERHASIL DISALIN!";
-                setTimeout(() => el.innerText = oldText, 2000);
+                const old = el.innerText; el.innerText = "COPIED!";
+                setTimeout(() => el.innerText = old, 2000);
             });
         };
 
         window.showSettings = () => showPage('page-admin-settings');
+        window.testAlarm = () => { initAudioContext(); playBeep('warning'); };
     </script>
 </body>
 </html>
