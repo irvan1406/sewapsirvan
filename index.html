@@ -11,12 +11,13 @@
         body { font-family: 'Poppins', sans-serif; background-color: #0f172a; color: #f8fafc; }
         .glass-card { background: rgba(30, 41, 59, 0.7); backdrop-filter: blur(10px); border: 1px solid rgba(255,255,255,0.1); border-radius: 1rem; }
         .timer-urgent { color: #ef4444; animation: pulse 1s infinite; font-weight: 800; }
+        .timer-warning-bg { background-color: rgba(239, 68, 68, 0.2) !important; border: 1px solid #ef4444 !important; }
         @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.5; } }
         .hidden-section { display: none; }
         input[type="radio"]:checked + label { border-color: #3b82f6; background-color: rgba(59, 130, 246, 0.1); }
     </style>
 </head>
-<body class="min-h-screen pb-10">
+<body class="min-h-screen pb-10" onclick="initAudioContext()">
 
     <!-- NAVIGATION / HEADER -->
     <nav class="p-4 flex justify-between items-center glass-card m-4">
@@ -101,7 +102,7 @@
         <!-- PAGE: TIMER VIEW (Public/Penyewa) -->
         <section id="page-timer" class="hidden-section text-center py-10">
             <div class="glass-card p-8">
-                <div class="w-16 h-16 bg-blue-600 rounded-full flex items-center justify-center mx-auto mb-4 shadow-xl shadow-blue-500/20">
+                <div id="user-timer-icon" class="w-16 h-16 bg-blue-600 rounded-full flex items-center justify-center mx-auto mb-4 shadow-xl shadow-blue-500/20">
                     <i class="fas fa-stopwatch text-2xl"></i>
                 </div>
                 <h3 id="timer-user-name" class="text-2xl font-bold mb-1">-</h3>
@@ -109,6 +110,11 @@
                 
                 <div id="timer-display" class="text-7xl font-black mb-6 tracking-tighter font-mono bg-slate-900 py-4 rounded-2xl border border-slate-800 shadow-inner">00:00:00</div>
                 
+                <div id="timer-alert-box" class="hidden mb-6 p-3 bg-red-500/20 border border-red-500 rounded-lg animate-pulse">
+                    <p class="text-red-400 font-bold text-sm">⚠️ WAKTU HAMPIR HABIS! ⚠️</p>
+                    <p class="text-[10px] text-red-300">Siap-siap atau perpanjang sekarang.</p>
+                </div>
+
                 <div class="bg-slate-800/80 p-4 rounded-xl border border-slate-700 mb-6">
                     <p class="text-[10px] text-slate-500 uppercase font-bold mb-2">Pesan dari Admin:</p>
                     <div id="timer-note" class="italic text-sm text-blue-200">
@@ -119,6 +125,10 @@
                 <button onclick="location.reload()" class="bg-slate-800 px-6 py-2 rounded-full text-xs text-slate-400 border border-slate-700 hover:bg-slate-700 transition-all">
                     <i class="fas fa-sync-alt mr-1"></i> Refresh Status
                 </button>
+                
+                <div class="mt-4">
+                    <button onclick="testAlarm()" class="text-[10px] text-slate-600 underline">Test Audio Alarm</button>
+                </div>
             </div>
         </section>
 
@@ -188,6 +198,46 @@
         let logoClickCount = 0;
         let activeTimers = {};
         let syncInterval = null;
+        let alarmInterval = null;
+        let audioContext = null;
+
+        // ALARM SYSTEM
+        window.initAudioContext = () => {
+            if (!audioContext) {
+                audioContext = new (window.AudioContext || window.webkitAudioContext)();
+            } else if (audioContext.state === 'suspended') {
+                audioContext.resume();
+            }
+        };
+
+        window.testAlarm = () => {
+            initAudioContext();
+            playBeep('warning');
+        };
+
+        function playBeep(type) {
+            if (!audioContext) return;
+            const osc = audioContext.createOscillator();
+            const gain = audioContext.createGain();
+            osc.connect(gain);
+            gain.connect(audioContext.destination);
+
+            if (type === 'warning') {
+                // High pitch short beep for 10 min warning
+                osc.type = 'square';
+                osc.frequency.setValueAtTime(880, audioContext.currentTime); // A5
+                gain.gain.setValueAtTime(0.1, audioContext.currentTime);
+                osc.start();
+                osc.stop(audioContext.currentTime + 0.1);
+            } else if (type === 'end') {
+                // Long lower pitch for end
+                osc.type = 'sawtooth';
+                osc.frequency.setValueAtTime(440, audioContext.currentTime); // A4
+                gain.gain.setValueAtTime(0.2, audioContext.currentTime);
+                osc.start();
+                osc.stop(audioContext.currentTime + 1.0);
+            }
+        }
 
         window.onload = () => { initApp(); checkUrlForTimer(); };
 
@@ -206,8 +256,11 @@
                 list.innerHTML = "";
                 snap.forEach(docSnap => {
                     const data = docSnap.data();
-                    activeTimers[docSnap.id] = data; // Update local state
-                    renderRentalItem(docSnap.id, data);
+                    // FIXED: Safer merge logic to prevent undefined error
+                    const previousData = activeTimers[docSnap.id] || {};
+                    activeTimers[docSnap.id] = { ...data, hasAutoWarned: previousData.hasAutoWarned }; 
+                    
+                    renderRentalItem(docSnap.id, activeTimers[docSnap.id]);
                 });
                 
                 // If list empty
@@ -344,10 +397,23 @@
 
         function renderRentalItem(id, data) {
             const list = document.getElementById('admin-rentals-list');
-            const card = document.createElement('div');
+            let card = document.getElementById(`card-${id}`);
+            
+            // Logic for visual warning 10 minutes (600 seconds)
+            const isWarning = data.remainingSeconds <= 600 && data.remainingSeconds > 0 && data.isRunning;
             const urgent = data.remainingSeconds < 600 && data.status === 'Aktif';
             
-            card.className = "glass-card p-4 transition-all " + (data.status === 'Aktif' ? 'border-l-4 border-green-500 bg-green-500/5' : 'border-l-4 border-yellow-500');
+            // Create card if not exists (or replace content)
+            if (!card) {
+                card = document.createElement('div');
+                card.id = `card-${id}`;
+                list.appendChild(card);
+            }
+            
+            card.className = "glass-card p-4 transition-all relative " + 
+                (isWarning ? 'timer-warning-bg ' : '') + 
+                (data.status === 'Aktif' ? 'border-l-4 border-green-500' : 'border-l-4 border-yellow-500');
+
             card.innerHTML = `
                 <div class="flex justify-between items-start mb-3">
                     <div class="flex-1">
@@ -362,6 +428,13 @@
                         <p class="text-[9px] ${data.isRunning?'text-green-500':'text-yellow-500'} font-bold uppercase mt-1">${data.isRunning?'BERJALAN':'PAUSED'}</p>
                     </div>
                 </div>
+
+                <!-- ALERT BUTTON FOR ADMIN -->
+                ${isWarning ? `
+                    <button onclick="sendWarningWa('${id}', '${data.wa}', '${data.name}')" class="w-full bg-red-600 hover:bg-red-700 text-white text-xs font-bold py-2 rounded-lg mb-3 animate-pulse">
+                        <i class="fab fa-whatsapp"></i> KIRIM PERINGATAN (10 MENIT!)
+                    </button>
+                ` : ''}
 
                 <div class="flex gap-2 mb-3">
                     <button onclick="toggleTimer('${id}', ${data.isRunning})" class="flex-1 ${data.isRunning?'bg-amber-600':'bg-green-600'} py-2 rounded-lg text-xs font-bold shadow-sm">
@@ -388,24 +461,51 @@
                     </div>
                 </div>
             `;
-            list.appendChild(card);
         }
 
         window.toggleTimer = async (id, run) => {
-            const data = activeTimers[id];
-            await updateDoc(doc(db, "artifacts", appId, "public", "data", "rentals", id), { 
-                isRunning: !run, 
-                status: "Aktif", 
-                lastUpdate: Date.now() 
-            });
+            // FIXED: Added check if activeTimers[id] exists to prevent crash
+            if (!activeTimers[id]) {
+                console.error("Timer data not found locally, waiting for sync.");
+                return;
+            }
+            try {
+                await updateDoc(doc(db, "artifacts", appId, "public", "data", "rentals", id), { 
+                    isRunning: !run, 
+                    status: "Aktif", 
+                    lastUpdate: Date.now() 
+                });
+            } catch (error) {
+                console.error("Error updating timer:", error);
+                alert("Gagal mengupdate status timer. Periksa koneksi internet.");
+            }
         };
 
         window.adjustTime = async (id, secs) => {
-            const newVal = Math.max(0, activeTimers[id].remainingSeconds + secs);
-            await updateDoc(doc(db, "artifacts", appId, "public", "data", "rentals", id), { 
+            // FIXED: Added check if activeTimers[id] exists to prevent crash
+            if (!activeTimers[id]) return;
+
+            const currentSec = activeTimers[id].remainingSeconds || 0;
+            const newVal = Math.max(0, currentSec + secs);
+            
+            // If admin adds time above 10 mins (600s), alarm resets
+            const updates = { 
                 remainingSeconds: newVal, 
                 lastUpdate: Date.now() 
-            });
+            };
+            
+            // If adding time back above 10 mins, reset warned status so it triggers again later
+            if (newVal > 600) {
+                 // We don't save 'warned10' to DB usually to keep it simple, 
+                 // but we can clear local state if we were tracking it.
+                 // The logic below handles the >600 check naturally.
+            }
+
+            try {
+                await updateDoc(doc(db, "artifacts", appId, "public", "data", "rentals", id), updates);
+            } catch (error) {
+                console.error("Error adjusting time:", error);
+            }
         };
 
         window.updateNote = async (id, val) => {
@@ -421,9 +521,20 @@
             window.open(`https://wa.me/${wa}?text=${encodeURIComponent("Halo, ini link untuk memantau sisa waktu sewa PS3 Anda secara real-time:\n\n" + url)}`, '_blank');
         };
 
+        window.sendWarningWa = (id, wa, name) => {
+            const msg = `Halo ${name}, waktu sewa PS3 Anda tersisa 10 menit lagi. Harap bersiap-siap. Jika pengembalian terlambat akan dikenakan DENDA Rp 10.000 per jam.`;
+            window.open(`https://wa.me/${wa}?text=${encodeURIComponent(msg)}`, '_blank');
+        };
+
         function updateAllTimers() {
             Object.keys(activeTimers).forEach(async id => {
                 const data = activeTimers[id];
+                
+                // Initialize local warned flag if not present
+                if (typeof data.hasAutoWarned === 'undefined') {
+                    activeTimers[id].hasAutoWarned = false;
+                }
+
                 if (data.isRunning && data.remainingSeconds > 0) {
                     const now = Date.now();
                     const diff = Math.floor((now - data.lastUpdate) / 1000);
@@ -434,13 +545,35 @@
                         activeTimers[id].remainingSeconds = newSecs;
                         activeTimers[id].lastUpdate = now;
                         
+                        // --- ADMIN LOGIC: 10 MINUTE TRIGGER ---
+                        if (newSecs === 600) { // Exactly 10 minutes left
+                            // 1. Play Alarm in Admin
+                            playBeep('warning');
+                            // 2. Try Auto Send WA (Popup) - Browsers might block this without click, hence the button added in renderRentalItem
+                            // We try anyway:
+                            if (!activeTimers[id].hasAutoWarned) {
+                                window.sendWarningWa(id, data.wa, data.name);
+                                activeTimers[id].hasAutoWarned = true;
+                            }
+                        }
+                        
+                        // Reset warning flag if time added back
+                        if (newSecs > 600) {
+                            activeTimers[id].hasAutoWarned = false;
+                        }
+
                         // Sync to database every 5 seconds to minimize writes but keep it fairly real-time
-                        if (newSecs % 5 === 0 || newSecs === 0) {
+                        if (newSecs % 5 === 0 || newSecs === 0 || newSecs === 600) {
                             await updateDoc(doc(db, "artifacts", appId, "public", "data", "rentals", id), { 
                                 remainingSeconds: newSecs, 
                                 lastUpdate: now, 
                                 isRunning: newSecs > 0 
                             });
+                        }
+                        
+                        // Re-render admin card to show red warning button if in range
+                        if (document.getElementById('page-admin-dashboard').classList.contains('hidden-section') === false) {
+                            renderRentalItem(id, activeTimers[id]); 
                         }
                     }
                 }
@@ -477,6 +610,8 @@
             if (tId && activeTimers[tId]) {
                 const d = activeTimers[tId];
                 const el = document.getElementById('timer-display');
+                const alertBox = document.getElementById('timer-alert-box');
+                const icon = document.getElementById('user-timer-icon');
                 
                 // If it's paused, we use the saved value, if running we calculate local drift
                 let displaySecs = d.remainingSeconds;
@@ -486,13 +621,34 @@
                 }
 
                 el.innerText = formatTime(displaySecs);
-                if(displaySecs < 600 && displaySecs > 0) el.classList.add('timer-urgent');
-                else el.classList.remove('timer-urgent');
                 
+                // --- USER SIDE ALARM LOGIC ---
+                // 1. If 10 mins or less (600s) AND running AND > 0
+                if(displaySecs <= 600 && displaySecs > 0 && d.isRunning) {
+                    el.classList.add('timer-urgent');
+                    alertBox.classList.remove('hidden');
+                    icon.classList.remove('bg-blue-600');
+                    icon.classList.add('bg-red-600', 'animate-pulse');
+                    
+                    // Beep every 5 seconds
+                    if (displaySecs % 5 === 0) playBeep('warning');
+                } 
+                // 2. If Time Added (> 10 mins), stop alarm visuals
+                else if (displaySecs > 600) {
+                    el.classList.remove('timer-urgent');
+                    alertBox.classList.add('hidden');
+                    icon.classList.add('bg-blue-600');
+                    icon.classList.remove('bg-red-600', 'animate-pulse');
+                }
+                
+                // 3. Time Ended
                 if(displaySecs <= 0) {
                     el.innerText = "00:00:00";
                     document.getElementById('timer-user-status').innerText = "WAKTU HABIS";
                     document.getElementById('timer-user-status').classList.add('text-red-500');
+                    
+                    // Play End Sound once every few seconds if user still viewing
+                    if (Date.now() % 4000 < 500) playBeep('end');
                 }
             }
         }
